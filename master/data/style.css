@@ -1,0 +1,294 @@
+*{
+	box-sizing:border-box;
+}
+
+body{
+	margin:0;
+	font-family:system-ui,Segoe UI,Roboto,Arial;
+	background:#f3f5f7;
+	display:flex;
+}
+
+/* SIDEBAR */
+#sidebar{
+	width:230px;
+	background:#1f2933;
+	color:white;
+	height:100vh;
+	padding:20px;
+}
+
+#sidebar h2{
+	margin-top:0;
+	font-size:20px;
+}
+
+.menuBtn{
+	width:100%;
+	padding:12px;
+	margin-bottom:8px;
+	border:none;
+	background:#323f4b;
+	color:white;
+	border-radius:6px;
+	cursor:pointer;
+	text-align:left;
+}
+
+.menuBtn:hover{
+	background:#3e4c59;
+}
+
+/* MAIN AREA */
+#main{
+	flex:1;
+	padding:30px;
+}
+
+.header{
+	font-size:24px;
+	font-weight:600;
+	margin-bottom:20px;
+}
+
+/* GRID */
+	.grid{
+	display:grid;
+	grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+	gap:16px;
+}
+
+/* CARDS */
+	.card{
+	background:white;
+	border-radius:10px;
+	padding:18px;
+	box-shadow:0 3px 10px rgba(0,0,0,0.08);
+	width:100%;
+}
+
+.card h3{
+	margin-top:0;
+}
+
+/* TORCH LIST */
+.torchRow{
+	display:flex;
+	align-items:center;
+	margin:6px 0;
+}
+
+.dot{
+	width:14px;
+	height:14px;
+	border-radius:50%;
+	background:red;
+	margin-right:10px;
+}
+
+/* FORM */
+input[type=number]{
+	width:70px;
+	padding:5px;
+}
+
+input[type=range]{
+	width:100%;
+}
+
+button{
+	padding:8px 14px;
+	border:none;
+	border-radius:6px;
+	background:#3b82f6;
+	color:white;
+	cursor:pointer;
+}
+
+button:hover{
+	background:#2563eb;
+}
+
+button.danger{
+	background:#ef4444;
+}
+
+button.danger:hover{
+	background:#dc2626;
+}
+
+/* TEST BUTTON GRID */
+#tests{
+	display:grid;
+	grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
+	gap:10px;
+}
+
+/* STATUS */
+.statusRow{
+	display:flex;
+	justify-content:space-between;
+	margin:6px 0;
+}
+
+/* MENUS */
+.menu{
+	display:none;
+}
+
+.menu.active{
+	display:block;
+}
+
+.formRow{
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	margin-bottom:12px;
+}
+
+.formRow input{
+	width:80px;
+}
+
+.stepperRow{
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	margin:14px 0;
+	font-size:20px;
+}
+
+.stepper{
+	display:flex;
+	align-items:center;
+	gap:12px;
+}
+
+.stepper span{
+	font-size:26px;
+	font-weight:600;
+	min-width:40px;
+	text-align:center;
+}
+
+.stepper button{
+	width:48px;
+	height:48px;
+	font-size:26px;
+	border:none;
+	border-radius:10px;
+	background:#3b82f6;
+	color:white;
+}
+
+.stepper button:active{
+	background:#1d4ed8;
+}
+
+/* MODAL */
+.modal{
+	position:fixed;
+	inset:0;
+	background:rgba(0,0,0,0.6);
+	display:none;
+	align-items:center;
+	justify-content:center;
+	z-index:999;
+}
+
+.modal.show{
+	display:flex;
+}
+
+.modalCard{
+	background:white;
+	padding:40px;
+	border-radius:14px;
+	text-align:center;
+	box-shadow:0 10px 40px rgba(0,0,0,0.3);
+}
+
+.bigNumber{
+	font-size:60px;
+	font-weight:bold;
+	margin:20px 0;
+}
+
+@media (max-width: 1200px){
+	body{
+		font-size:27px;
+	}
+	#main{
+		padding:18px;
+	}	
+	
+	.header{
+		font-size:42px;
+	}
+	
+	.card{
+		padding:22px;
+		border-radius:14px;
+	}
+	
+	.card h3{
+		font-size:33px;
+	}
+	
+	.grid{
+		grid-template-columns:1fr;
+		gap:18px;
+	}
+	
+	/* SIDEBAR */
+	#sidebar{
+		width:260px;					
+	}
+	
+	#sidebar h2{
+		font-size:30px;
+	}
+	
+	/* Form elements */
+	input[type="number"]{
+		width:100px;
+		font-size:27px;
+		padding:10px;
+		margin-top:6px;
+	}
+	
+	input[type="range"]{
+		height:34px;
+		width:100%;
+	}
+	
+	label{
+		font-size:27px;
+	}
+	
+	/* Buttons */
+	button{
+		width:100%;
+		font-size:30px;
+		padding:14px;
+		margin-top:10px;
+	}
+	
+	/* Torch rows */
+	.torchRow{
+		font-size:30px;
+		margin:10px 0;
+	}
+	
+	.dot{
+		width:18px;
+		height:18px;
+	}
+	
+	/* Status rows */
+	.statusRow{
+		font-size:27px;
+		padding:6px 0;
+	}
+}
