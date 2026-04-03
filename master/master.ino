@@ -3,7 +3,6 @@
 #include <WebServer.h>
 #include <SPIFFS.h>
 #include <Adafruit_NeoPixel.h>
-#include <DNSServer.h>
 
 // ================= CONFIG =================
 #define MY_ID 0              // Master is player 0
@@ -15,9 +14,6 @@
 
 const char* ssid = "ESP32-Game";
 const char* pass = "12345678";
-const byte DNS_PORT = 53;
-
-DNSServer dnsServer;
 
 // ================ LED =====================
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -296,36 +292,9 @@ void stopGame() {
 }
 
 void setupWeb() {  
-  //server.serveStatic("/", SPIFFS, "/index.html");
-
   server.serveStatic("/", SPIFFS, "/index.html");
   server.serveStatic("/style.css", SPIFFS, "/style.css");
   server.serveStatic("/app.js", SPIFFS, "/app.js");
-
-  server.on("/generate_204", []() {
-    server.sendHeader("Location", "/", true);
-    server.send(302, "text/plain", "");
-  });
-  
-  server.on("/hotspot-detect.html", []() {
-    server.sendHeader("Location", "/", true);
-    server.send(302, "text/plain", "");
-  });
-  
-  server.on("/connecttest.txt", []() {
-    server.sendHeader("Location", "/", true);
-    server.send(302, "text/plain", "");
-  });
-  
-  server.on("/ncsi.txt", []() {
-    server.sendHeader("Location", "/", true);
-    server.send(302, "text/plain", "");
-  });
-
-  server.onNotFound([]() {
-    server.sendHeader("Location", "/", true);
-    server.send(302, "text/plain", "");
-  });
 
   server.on("/start", []() {
     printAllArgs("/start");
@@ -415,8 +384,7 @@ void setup() {
   strip.begin();
   strip.show();
 
-  //WiFi.mode(WIFI_STA);
-  WiFi.mode(WIFI_AP);
+  WiFi.mode(WIFI_AP_STA);
     
   esp_now_init();
   esp_now_register_recv_cb(onRecv);
@@ -425,27 +393,21 @@ void setup() {
     esp_now_peer_info_t p{};
     memcpy(p.peer_addr, peers[i], 6);
     esp_now_add_peer(&p);
-  }
-
-  SPIFFS.begin(true);
+  } 
 
   WiFi.softAP(ssid, pass);
+  delay(100);
 
   Serial.print("AP IP: ");
-  Serial.println(WiFi.softAPIP());
+  Serial.println(WiFi.softAPIP()); // Will print 192.168.4.1
   
-  // redirect ALL domains to ESP
-  dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
-
+  SPIFFS.begin(true);
   setupWeb();
-
   randomSeed(esp_random());
 }
 
 // =============== LOOP =====================
 void loop() {
-  dnsServer.processNextRequest();
-  
   server.handleClient();
 
   if (running &&
