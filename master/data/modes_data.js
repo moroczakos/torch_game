@@ -3,7 +3,8 @@ const modesData = [
         "id": "colorRush",
         "label": "Color Rush (One team)",
         "description": "ColorRush is a fast-paced team game in which players pass a ball across a field of glowing buoys. The mission? Pass the ball to as many of your coloured buoys as possible before time runs out. Every successful pass counts. Every second counts. The team that makes the most passes within the given time wins the round.",
-		"details": "Only one buoy is active at a time. Before the round begins, each team member is assigned a colour. When the clock starts, one of the buoys lights up in a random colour. If it matches your colour, rush to it and make the pass — your team will score a point. As soon as a buoy is touched, it goes dark and a new buoy lights up somewhere on the field, displaying a new random colour. The action never stops, the targets keep shifting and every second counts. The team that makes the most passes before the timeout wins the round."
+		"details": "Only one buoy is active at a time. Before the round begins, each team member is assigned a colour. When the clock starts, one of the buoys lights up in a random colour. If it matches your colour, rush to it and make the pass — your team will score a point. As soon as a buoy is touched, it goes dark and a new buoy lights up somewhere on the field, displaying a new random colour. The action never stops, the targets keep shifting and every second counts. The team that makes the most passes before the timeout wins the round.",
+        "template": "tpl-colorRush"
     },
     {
         "id": "colorClush",

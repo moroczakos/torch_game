@@ -1,6 +1,7 @@
 const N=5;
 const pDiv=document.getElementById("players");
 const tDiv=document.getElementById("tests");
+const bright = document.getElementById("bright");
 
 function step(id,delta){
 	const input=document.getElementById(id);
@@ -58,10 +59,12 @@ function showMenu(id){
 
 /* brightness */
 
-bright.oninput=()=>{
-bVal.textContent=bright.value;
-fetch(`/brightness?value=${bright.value}`);
-};
+if(bright){
+    bright.oninput = () => {
+        bVal.textContent = bright.value;
+        fetch(`/brightness?value=${bright.value}`);
+    };
+}
 
 /* start game */
 
@@ -84,6 +87,13 @@ async function refresh(){
 	const r=await fetch("/status");
 	const s=await r.json();
 	
+	if(s.online){
+		for(let i=0;i<N;i++){
+			document.getElementById(`dot${i}`)
+			.style.background=s.online[i]?"lime":"red";
+		}
+	}
+	
 	run.textContent=s.running?"yes":"no";
 	holder.textContent=s.holder;
 	count.textContent=s.passes;
@@ -94,13 +104,6 @@ async function refresh(){
 	}
 
 	lastRunning = s.running;
-	
-	if(s.online){
-		for(let i=0;i<N;i++){
-			document.getElementById(`dot${i}`)
-			.style.background=s.online[i]?"lime":"red";
-		}
-	}
 	
 	if(s.brightness!==undefined){
 		bright.value=s.brightness;
@@ -137,7 +140,23 @@ function closeInfoModal() {
 }
 
 function selectMode(id) {
-    // your existing oneTeamGame() etc. logic, switched by id
+    const mode = modesData.find(m => m.id === id);
+    const tpl = document.getElementById(mode.template);
+    const container = document.getElementById("modeControls");
+
+    container.innerHTML = "";
+    container.appendChild(tpl.content.cloneNode(true));
+
+    // re-bind brightness slider after it's injected into the DOM
+    const bright = document.getElementById("bright");
+    if(bright){
+        bright.oninput = () => {
+            document.getElementById("bVal").textContent = bright.value;
+            fetch(`/brightness?value=${bright.value}`);
+        };
+    }
+	
+	showMenu('selectedMode');
 }
 
 loadModes();
