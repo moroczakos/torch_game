@@ -1,3 +1,4 @@
+#include <string>
 #include <WiFi.h>
 #include <esp_now.h>
 #include <WebServer.h>
@@ -25,6 +26,7 @@ uint8_t peers[MAX_PLAYERS][6] = {
 bool    ledOn      = false;
 uint8_t brightness = 40;
 int     maxColors  = 3;
+String  gameMode   = "";
 
 // =============== GAME STATE ===============
 bool running = false;
@@ -32,6 +34,8 @@ bool prevDetect = false;
 int torchHolder = 0;
 int passCount = 0;
 int duration = 30;
+int teamPasses[MAX_PLAYERS] = {0}; // per-team pass counts for colorClush
+int torchColor = 0;                // current active colour index
 
 unsigned long startMillis = 0;
 unsigned long lastSeen[MAX_PLAYERS] = {0};
@@ -61,19 +65,23 @@ void printAllArgs(String endpoint) {
 // ============= SEND LED ===================
 void sendLed(int id, bool on) {
   if (id == MY_ID) {
-    if (on) lightRandom();
-    else    clearLed();
+    if (on) {
+      torchColor = random(maxColors);
+      RGBColor rgb = palette(torchColor);
+      strip.setBrightness(brightness);
+      strip.fill(strip.Color(rgb.r, rgb.g, rgb.b));
+      strip.show();
+    }
+    else clearLed();
     ledOn = on;
     return;
   }
 
+  torchColor = random(maxColors);
   RGBColor rgb = palette(random(maxColors));
+  
   Packet p{};
-  if (on) p.type = MSG_LED;
-  else {
-    p.type = MSG_STOP;
-  }
-
+  p.type = on ? MSG_LED : MSG_STOP;
   p.target = id;
   p.r = rgb.r;
   p.g = rgb.g;
@@ -81,7 +89,6 @@ void sendLed(int id, bool on) {
   p.brightness = brightness;
 
   printPacket(p);
-
   esp_now_send(peers[id], (uint8_t*)&p, sizeof(p));
 }
 
@@ -97,6 +104,11 @@ int nextPlayer() {
 // =========== HANDLE PASS ==================
 void handlePass(int from) {
   if (!running) return;
+
+  // in colorClush, the colour currently active scores the pass
+  if (gameMode == "colorClush") {
+    teamPasses[torchColor]++;
+  }
 
   sendLed(torchHolder, false);
 
@@ -148,7 +160,19 @@ void sendStatus() {
     if (i < MAX_PLAYERS - 1)s += ",";
     active[i] = peerOn;
   }
-  s += "]}";
+
+  s += "]";
+  
+  if (gameMode == "colorClush") {
+    s += ",\"teamPasses\":[";
+    for (int i = 0; i < maxColors; i++) {
+      s += String(teamPasses[i]);
+      if (i < maxColors - 1) s += ",";
+    }
+    s += "]";
+  }
+
+  s += "}";
   server.send(200, "application/json", s);
 }
 
@@ -156,8 +180,9 @@ void startGame() {
   running = true;
   startMillis = millis();
   passCount = 0;
+  torchColor = 0;
+  for (int i = 0; i < MAX_PLAYERS; i++) teamPasses[i] = 0;
   torchHolder = 0;
-
   sendLed(0, true);
 }
 
@@ -182,6 +207,9 @@ void setupWeb() {
 
     if (server.hasArg("time"))
       duration = server.arg("time").toInt();
+
+    if (server.hasArg("mode"))
+      gameMode = server.arg("mode");
 
     startGame();
     Serial.println("🏁 Game started!");

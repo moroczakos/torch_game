@@ -30,6 +30,29 @@ function showGameOver(passes){
 	document.getElementById("gameOverModal").classList.add("show");
 }
 
+function showGameOverTeams(teamPasses){
+    const max = Math.max(...teamPasses);
+    const winners = teamPasses
+        .map((passes, i) => passes === max ? i + 1 : null)
+        .filter(i => i !== null);
+
+    const resultDiv = document.getElementById("passResult");
+    resultDiv.innerHTML = "";
+    teamPasses.forEach((passes, i) => {
+        resultDiv.innerHTML += `<div class="teamScoreRow">Team ${i+1}: ${passes}</div>`;
+    });
+
+    const msgEl = document.getElementById("gameOverModal").querySelector("p");
+
+    if(winners.length > 1){
+        msgEl.textContent = "Tie between Team " + winners.join(" and Team ") + "!";
+    } else {
+        msgEl.textContent = "Team " + winners[0] + " wins!";
+    }
+
+    document.getElementById("gameOverModal").classList.add("show");
+}
+
 function closeModal(){
 	document.getElementById("gameOverModal").classList.remove("show");
 }
@@ -70,7 +93,7 @@ if(bright){
 
 async function startGame(){
 	const q = new URLSearchParams(new FormData(gameForm)).toString();
-	await fetch("/start?" + q);
+	await fetch("/start?" + q + "&mode=" + selectedMode);
 }
 
 /* controls */
@@ -94,21 +117,46 @@ async function refresh(){
 		}
 	}
 	
-	run.textContent=s.running?"yes":"no";
-	holder.textContent=s.holder;
-	count.textContent=s.passes;
-	timeLeft.textContent=s.timeLeft;
-	
-	if(lastRunning && !s.running){
-		showGameOver(s.passes);
-	}
+	const run = document.getElementById("run");
+    const holder = document.getElementById("holder");
+    const timeLeft = document.getElementById("timeLeft");
+    const count = document.getElementById("count");
 
-	lastRunning = s.running;
+    if(run) run.textContent = s.running ? "yes" : "no";
+    if(holder) holder.textContent = s.holder;
+    if(timeLeft) timeLeft.textContent = s.timeLeft;
+    if(count) count.textContent = s.passes;
 	
-	if(s.brightness!==undefined){
-		bright.value=s.brightness;
-		bVal.textContent=s.brightness;
-	}            
+	/* colorClush team scores */
+    const teamScores = document.getElementById("teamScores");
+    if(teamScores && s.teamPasses){
+        teamScores.innerHTML = "";
+        s.teamPasses.forEach((passes, i) => {
+            teamScores.innerHTML += `
+            <div class="statusRow">
+                <span>Team ${i+1}</span>
+                <span>${passes}</span>
+            </div>`;
+        });
+    }
+
+    if(lastRunning && !s.running){
+        if(selectedMode === "colorClush" && s.teamPasses){
+            showGameOverTeams(s.teamPasses);
+        } else {
+            showGameOver(s.passes);
+        }
+    }
+
+    lastRunning = s.running;
+
+    if(s.brightness !== undefined){
+        const bright = document.getElementById("bright");
+        if(bright){
+            bright.value = s.brightness;
+            document.getElementById("bVal").textContent = s.brightness;
+        }
+    }                       
 }
 
 /* info modal */
@@ -139,7 +187,11 @@ function closeInfoModal() {
     document.getElementById("infoModal").classList.remove("show");
 }
 
+let selectedMode = null;
+
 function selectMode(id) {
+	selectedMode = id;
+	
     const mode = modesData.find(m => m.id === id);
     const tpl = document.getElementById(mode.template);
     const container = document.getElementById("modeControls");

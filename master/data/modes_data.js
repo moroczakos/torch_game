@@ -10,6 +10,7 @@ const modesData = [
         "id": "colorClush",
         "label": "Color Clash (Multiple teams)",
         "description": "ColorClash is a fast-paced multiplayer game where two or more teams compete on the same field at the same time. Each team has their own colour — and their own buoy to chase. The team that makes the most passes before time runs out wins the round.",
-		"details": "Multiple buoys are active at once — one for each team. Before the round begins, each team is assigned a colour. When the clock starts, one buoy per team lights up in that team's colour. If your team's buoy is lit, rush to it and make the pass — your team scores a point. The moment a buoy is touched, it instantly reactivates on a different buoy somewhere on the field. All teams are chasing their targets simultaneously, paths cross, and the field becomes a blur of colour and movement. The team with the most passes before the timeout wins the round."
+		"details": "Multiple buoys are active at once — one for each team. Before the round begins, each team is assigned a colour. When the clock starts, one buoy per team lights up in that team's colour. If your team's buoy is lit, rush to it and make the pass — your team scores a point. The moment a buoy is touched, it instantly reactivates on a different buoy somewhere on the field. All teams are chasing their targets simultaneously, paths cross, and the field becomes a blur of colour and movement. The team with the most passes before the timeout wins the round.",
+        "template": "tpl-colorClush"
     }
 ]
