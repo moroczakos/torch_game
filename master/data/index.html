@@ -12,13 +12,14 @@
         <div id="sidebar">
             <h2>🔥 Torch Panel</h2>
             <button class="menuBtn" onclick="showMenu('dashboard')">Dashboard</button>
+			<button class="menuBtn" onclick="showMenu('modes')">Modes</button>
             <button class="menuBtn" onclick="showMenu('testing')">Testing</button>
 			<button class="menuBtn" onclick="showMenu('status')">Status</button>
         </div>
 		
         <!-- MAIN -->
 		
-        <div id="main">
+        <div id="main">	
             <div id="dashboard" class="menu active">
                 <div class="header">Game Control</div>
                 <div class="grid">
@@ -90,14 +91,22 @@
                 </div>
             </div>
 			
-            <!-- TEST MENU -->
+			<!-- MODES MENU -->
+			<div id="modes" class="menu">				
+				<div class="header">Mode selection</div>
+				<div class="card">
+					<div class="modeList"></div>				
+                </div>	
+			</div>
 			
+            <!-- TEST MENU -->			
             <div id="testing" class="menu">
                 <div class="header">Torch Testing</div>
                 <div class="card">
                     <div id="tests"></div>
                 </div>				
             </div>
+			
 			<!-- TORCH STATUS MENU -->
 			<div id="status" class="menu">
 				<div class="header">Torch Status</div>
@@ -107,8 +116,7 @@
 			</div>
         </div>
 		
-		<!-- GAME OVER MODAL -->
-		
+		<!-- GAME OVER MODAL -->		
 		<div id="gameOverModal" class="modal">
 			<div class="modalCard">
 				<h2>🔥 Game Finished</h2>
@@ -119,7 +127,22 @@
 			</div>
 		</div>
 		
-		<script src="/app.js"></script>
+		<!-- INFO MODAL -->
+		<div id="infoModal" class="modal">
+			<div class="modalCard">
+				<h2 id="infoTitle">Mode Info</h2>
+				
+				<div class="infoBody">
+					<p id="infoText"></p>
+					<p id="infoDetails" class="infoDetails"></p>
+				</div>
+				
+				<button onclick="closeInfoModal()">OK</button>
+			</div>
+		</div>
+		
+		<script src="modes_data.js"></script>
+		<script src="app.js"></script>
 		
     </body>
 </html>

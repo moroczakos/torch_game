@@ -108,5 +108,39 @@ async function refresh(){
 	}            
 }
 
+/* info modal */
+
+async function loadModes() {
+    const list = document.querySelector(".modeList");
+    list.innerHTML = "";
+
+    modesData.forEach(mode => {
+        list.innerHTML += `
+        <div class="modeBlock">
+            <button class="modeBtn" onclick="selectMode('${mode.id}')">${mode.label}</button>
+            <button class="infoBtn" onclick="showInfo('${mode.id}')">ℹ</button>
+        </div>`;
+    });
+}
+
+function showInfo(id) {
+    const mode = modesData.find(m => m.id === id);
+    document.getElementById("infoTitle").textContent = mode.label;
+    document.getElementById("infoText").textContent = mode.description;
+	document.getElementById("infoDetails").textContent = mode.details;
+	
+    document.getElementById("infoModal").classList.add("show");
+}
+
+function closeInfoModal() {
+    document.getElementById("infoModal").classList.remove("show");
+}
+
+function selectMode(id) {
+    // your existing oneTeamGame() etc. logic, switched by id
+}
+
+loadModes();
+
 setInterval(refresh,1000);
 refresh();

@@ -117,6 +117,41 @@ button.danger:hover{
 	background:#dc2626;
 }
 
+/* MODES */
+.modeList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+	width: 100%;
+}
+
+.modeBlock {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+	width: 100%;
+}
+
+.modeBtn {
+    flex: 1;
+	min-width: 0;
+    text-align: center;
+}
+
+.infoBtn {
+    width: 36px;
+    flex-shrink: 0;
+    background: #64748b;
+    font-size: 18px;
+    padding: 6px 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.infoBtn:hover {
+    background: #475569;
+}
+
 /* TEST BUTTON GRID */
 #tests{
 	display:grid;
@@ -207,12 +242,30 @@ button.danger:hover{
 	border-radius:14px;
 	text-align:center;
 	box-shadow:0 10px 40px rgba(0,0,0,0.3);
+	max-height: 80vh;        /* prevent card from growing beyond screen */
+    display: flex;
+    flex-direction: column;  /* stack title, text, button vertically */
 }
 
 .bigNumber{
 	font-size:60px;
 	font-weight:bold;
 	margin:20px 0;
+}
+
+.infoBody {
+    overflow-y: auto;        /* scroll only this section */
+    flex: 1;                 /* fill available space between title and button */
+    margin: 16px 0;
+    text-align: justify;        /* text fills the line */
+}
+
+.infoDetails {
+    margin-top: 12px;
+    font-size: 0.9em;
+    color: #555;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 12px;
 }
 
 @media (max-width: 1200px){
@@ -274,6 +327,12 @@ button.danger:hover{
 		padding:14px;
 		margin-top:10px;
 	}
+	
+	.infoBtn {
+        width: 64px;
+        height: 64px;
+        font-size: 26px;
+    }
 	
 	/* Torch rows */
 	.torchRow{
