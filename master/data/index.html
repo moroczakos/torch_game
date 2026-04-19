@@ -110,7 +110,7 @@
 						<h3>Game Settings</h3>
 						<form id="gameForm">
 							<div class="stepperRow">
-								<label>Colors</label>
+								<label>Players</label>
 								<div class="stepper">
 									<button type="button" onclick="step('colors',-1)">−</button>
 									<span id="colorsVal">3</span>
@@ -118,6 +118,7 @@
 									<button type="button" onclick="step('colors',1)">+</button>
 								</div>
 							</div>
+							<div id="teamColorPreview" class="teamColorPreview"></div>
 							<div class="stepperRow">
 								<label>Duration</label>
 								<div class="stepper">
@@ -180,11 +181,12 @@
 								<label>Teams</label>
 								<div class="stepper">
 									<button type="button" onclick="step('colors',-1)">−</button>
-									<span id="colorsVal">3</span>
-									<input type="hidden" name="colors" id="colors" value="3">
-									<button type="button" onclick="step('colors',1)">+</button>
-								</div>
+									<span id="colorsVal">2</span>
+									<input type="hidden" name="colors" id="colors" value="2">
+									<button type="button" onclick="step('colors',1)">+</button>									
+								</div>								
 							</div>
+							<div id="teamColorPreview" class="teamColorPreview"></div>
 							<div class="stepperRow">
 								<label>Duration</label>
 								<div class="stepper">

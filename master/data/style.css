@@ -268,6 +268,28 @@ button.danger:hover{
     padding-top: 12px;
 }
 
+/* TEAM COLOR PREVIEW */
+.teamColorPreview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.teamColorRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.teamDot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
 @media (max-width: 1200px){
 	body{
 		font-size:27px;

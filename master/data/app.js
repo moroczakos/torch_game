@@ -3,6 +3,17 @@ const pDiv=document.getElementById("players");
 const tDiv=document.getElementById("tests");
 const bright = document.getElementById("bright");
 
+const teamColors = [
+    "#ff0000",  // 0 — red
+    "#00ff00",  // 1 — green
+    "#0000ff",  // 2 — blue
+    "#ffff00",  // 3 — yellow
+    "#00ffff",  // 4 — cyan
+    "#ff00ff",  // 5 — magenta
+    "#ff8000",  // 6 — orange
+    "#8000ff",  // 7 — purple
+];
+
 function step(id,delta){
 	const input=document.getElementById(id);
 	const display=document.getElementById(id+"Val");
@@ -11,9 +22,13 @@ function step(id,delta){
 	
 	value+=delta;
 
-	if(id==="colors"){
-		value=Math.max(1,Math.min(10,value));
-	}
+	if(id === "colors"){
+    if(selectedMode === "colorClush"){
+        value = Math.max(2, Math.min(8, value));
+    } else {
+        value = Math.max(1, Math.min(8, value));
+    }
+}
 
 	if(id==="time"){
 		value=Math.max(5,Math.min(300,value));
@@ -21,13 +36,38 @@ function step(id,delta){
 
 	input.value=value;
 	display.textContent=value;
+	
+	if(id === "colors"){
+        updateTeamColorPreview(value);
+    }
+}
+
+function updateTeamColorPreview(count){
+    const preview = document.getElementById("teamColorPreview");
+    if(!preview) return;
+	
+    const label = selectedMode === "colorClush" ? "Team" : "Player";
+
+    preview.innerHTML = "";
+    for(let i = 0; i < count; i++){
+        const color = teamColors[i] ?? "#999";
+        preview.innerHTML += `
+        <div class="teamColorRow">
+            <span class="teamDot" style="background:${color}"></span>
+            <span>${label} ${i+1}</span>
+        </div>`;
+    }
 }
 
 /* finish game popup */
 
 function showGameOver(passes){
-	document.getElementById("passResult").textContent = passes;
-	document.getElementById("gameOverModal").classList.add("show");
+    const resultDiv = document.getElementById("passResult");
+    resultDiv.innerHTML = "";
+    resultDiv.textContent = passes;
+
+    document.getElementById("gameOverModal").querySelector("p").textContent = "Total Passes";
+    document.getElementById("gameOverModal").classList.add("show");
 }
 
 function showGameOverTeams(teamPasses){
@@ -209,6 +249,7 @@ function selectMode(id) {
     }
 	
 	showMenu('selectedMode');
+	updateTeamColorPreview(parseInt(document.getElementById("colors")?.value ?? 3));
 }
 
 loadModes();
