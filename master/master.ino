@@ -36,6 +36,8 @@ int passCount = 0;
 int duration = 30;
 int teamPasses[MAX_PLAYERS] = {0}; // per-team pass counts for colorClush
 int torchColor = 0;                // current active colour index
+int teamHolder[MAX_PLAYERS] = {0}; // which buoy holds each team's torch
+int numTeams = 2;  
 
 unsigned long startMillis = 0;
 unsigned long lastSeen[MAX_PLAYERS] = {0};
@@ -63,23 +65,16 @@ void printAllArgs(String endpoint) {
 }
 
 // ============= SEND LED ===================
+// For ColorRush
 void sendLed(int id, bool on) {
   if (id == MY_ID) {
-    if (on) {
-      torchColor = random(maxColors);
-      RGBColor rgb = palette(torchColor);
-      strip.setBrightness(brightness);
-      strip.fill(strip.Color(rgb.r, rgb.g, rgb.b));
-      strip.show();
-    }
-    else clearLed();
+    if (on) lightRandom();
+    else    clearLed();
     ledOn = on;
     return;
   }
 
-  torchColor = random(maxColors);
   RGBColor rgb = palette(random(maxColors));
-  
   Packet p{};
   p.type = on ? MSG_LED : MSG_STOP;
   p.target = id;
@@ -87,6 +82,35 @@ void sendLed(int id, bool on) {
   p.g = rgb.g;
   p.b = rgb.b;
   p.brightness = brightness;
+
+  esp_now_send(peers[id], (uint8_t*)&p, sizeof(p));
+}
+
+// Send a team's torch to a specific buoy (on or off)
+void sendTeamLed(int id, int team, bool on) {
+  RGBColor rgb = palette(team); // team index = fixed colour
+  
+  if (id == MY_ID) {
+    if (on) {
+      strip.setBrightness(brightness);
+      strip.fill(strip.Color(rgb.r, rgb.g, rgb.b));
+      strip.show();
+    } else {
+      // only clear if no other team is on this buoy
+      clearLed();
+    }
+    ledOn = on;
+    return;
+  }
+
+  Packet p{};
+  p.type      = on ? MSG_LED : MSG_STOP;
+  p.target    = id;
+  p.r         = rgb.r;
+  p.g         = rgb.g;
+  p.b         = rgb.b;
+  p.brightness = brightness;
+  p.team      = team;
 
   printPacket(p);
   esp_now_send(peers[id], (uint8_t*)&p, sizeof(p));
@@ -102,22 +126,54 @@ int nextPlayer() {
 }
 
 // =========== HANDLE PASS ==================
-void handlePass(int from) {
+void handlePass(int fromId) {
   if (!running) return;
 
-  // in colorClush, the colour currently active scores the pass
   if (gameMode == "colorClush") {
-    teamPasses[torchColor]++;
+    // find which team this buoy belongs to
+    int team = -1;
+    for (int t = 0; t < numTeams; t++) {
+      if (teamHolder[t] == fromId) { team = t; break; }
+    }
+    if (team == -1) return; // buoy not holding any team's torch
+
+    teamPasses[team]++;
+    passCount++;
+
+    // turn off current buoy for this team
+    sendTeamLed(fromId, team, false);
+
+    // pick next buoy that is active AND not held by any other team
+    int next;
+    int attempts = 0;
+    do {
+      next = nextPlayer();
+      attempts++;
+      if (attempts > 100) { next = fromId; break; } // fallback: stay if no free buoy
+    } while (next == fromId || isBuoyTaken(next, team));
+    
+    teamHolder[team] = next;
+    sendTeamLed(next, team, true);
+    Serial.printf("Team %d: buoy %d -> %d\n", team, fromId, next);
+
+  } else {
+    // colorRush — original behaviour
+    sendLed(teamHolder[0], false);
+    int next = nextPlayer();
+    teamHolder[0] = next;
+    passCount++;
+    sendLed(next, true);
+    Serial.printf("Torch %d -> %d\n", fromId, next);
   }
+}
 
-  sendLed(torchHolder, false);
-
-  int next = nextPlayer();
-  torchHolder = next;
-  passCount++;
-
-  sendLed(next, true);
-  Serial.printf("Torch %d -> %d\n", from, next);
+// returns true if the buoy is currently held by any team other than 'excludeTeam'
+bool isBuoyTaken(int id, int excludeTeam) {
+  for (int t = 0; t < numTeams; t++) {
+    if (t == excludeTeam) continue;
+    if (teamHolder[t] == id) return true;
+  }
+  return false;
 }
 
 // ========== ESPNOW RECEIVE ================
@@ -177,19 +233,46 @@ void sendStatus() {
 }
 
 void startGame() {
-  running = true;
+  running    = true;
   startMillis = millis();
-  passCount = 0;
-  torchColor = 0;
+  passCount  = 0;
   for (int i = 0; i < MAX_PLAYERS; i++) teamPasses[i] = 0;
-  torchHolder = 0;
-  sendLed(0, true);
+
+  if (gameMode == "colorClush") {
+    numTeams = maxColors;
+
+    // Prevent assigning more teams than active buoys
+    int activeCnt = 0;
+    for (int i = 0; i < MAX_PLAYERS; i++) if (active[i]) activeCnt++;
+    if (numTeams > activeCnt) numTeams = activeCnt; // cap teams to available buoys
+
+    // assign each team a different starting buoy
+    bool used[MAX_PLAYERS] = {false};
+    for (int t = 0; t < numTeams; t++) {
+      int id;
+      do { id = nextPlayer(); } while (used[id]);
+      used[id]    = true;
+      teamHolder[t] = id;
+      sendTeamLed(id, t, true);
+    }
+
+  } else {
+    // colorRush
+    teamHolder[0] = 0;
+    sendLed(0, true);
+  }
 }
 
 void stopGame() {
   running = false;
-  for (int i = 0; i < MAX_PLAYERS; i++)
-    sendLed(i, false);
+  
+  if (gameMode == "colorClush") {
+    for (int t = 0; t < numTeams; t++)
+      sendTeamLed(teamHolder[t], t, false);
+  } else {
+    for (int i = 0; i < MAX_PLAYERS; i++)
+      sendLed(i, false);
+  }
 }
 
 void setupWeb() {
@@ -311,9 +394,14 @@ void loop() {
 
   // Master IR
   int v = digitalRead(IR_PIN);
-  if (ledOn && v == LOW && !prevDetect) {
+  if (v == LOW && !prevDetect) {
     prevDetect = true;
-    handlePass(0);
+    if (gameMode == "colorClush") {
+      // buoy 0 (master) triggers pass only if it holds a team's torch
+      handlePass(MY_ID);
+    } else {
+      if (ledOn) handlePass(MY_ID);
+    }
   }
   if (v == HIGH) prevDetect = false;
 }

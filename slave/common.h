@@ -29,6 +29,7 @@ typedef struct {
   uint8_t target;
   uint8_t r, g, b;
   uint8_t brightness;
+  uint8_t team;
 } Packet;
 
 typedef struct {
