@@ -238,6 +238,69 @@
 			</div>
 		</template>
 		
+		<!-- ColorConquest -->
+		<template id="tpl-colorConquest">
+			<div class="header">Color Conquest</div>
+			<div class="grid">
+
+				<!-- GAME SETTINGS -->
+				<div class="card">
+					<h3>Game Settings</h3>
+					<form id="gameForm">
+						<input type="hidden" name="colors" id="colors" value="2">
+						<div class="stepperRow">
+							<label>Duration</label>
+							<div class="stepper">
+								<button type="button" onclick="step('time',-5)">−</button>
+								<span id="timeVal">30</span>
+								<input type="hidden" name="time" id="time" value="30">
+								<button type="button" onclick="step('time',5)">+</button>
+							</div>
+						</div>
+						<div>
+							<label>Brightness:</label>
+							<input type="range" id="bright" min="1" max="255" value="40">
+							(<span id="bVal">40</span>)
+						</div>
+					</form>
+				</div>
+
+				<!-- GAME CONTROLS -->
+				<div class="card">
+					<h3>Game Controls</h3>
+					<button onclick="startGame()">Start Game</button>
+					<button class="danger" onclick="stopGame()">Stop</button>
+					<button onclick="restartGame()">Restart</button>
+				</div>
+
+				<!-- GAME STATUS -->
+				<div class="card">
+					<h3>Status</h3>
+					<div class="statusRow">
+						<span>Running</span>
+						<span id="run">no</span>
+					</div>
+					<div class="statusRow">
+						<span>Time</span>
+						<span><span id="timeLeft">0</span> s</span>
+					</div>
+				</div>
+
+				<!-- BUOY STATUS -->
+				<div class="card">
+					<h3>Buoys</h3>
+					<div id="buoyStatus"></div>
+				</div>
+
+				<!-- TEAM TIMES -->
+				<div class="card">
+					<h3>Team Times</h3>
+					<div id="teamTimes"></div>
+				</div>
+
+			</div>
+		</template>
+		
 		<script src="modes_data.js"></script>
 		<script src="app.js"></script>
 		

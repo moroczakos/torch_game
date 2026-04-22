@@ -12,5 +12,12 @@ const modesData = [
         "description": "ColorClash is a fast-paced multiplayer game where two or more teams compete on the same field at the same time. Each team has their own colour — and their own buoy to chase. The team that makes the most passes before time runs out wins the round.",
 		"details": "Multiple buoys are active at once — one for each team. Before the round begins, each team is assigned a colour. When the clock starts, one buoy per team lights up in that team's colour. If your team's buoy is lit, rush to it and make the pass — your team scores a point. The moment a buoy is touched, it instantly reactivates on a different buoy somewhere on the field. All teams are chasing their targets simultaneously, paths cross, and the field becomes a blur of colour and movement. The team with the most passes before the timeout wins the round.",
         "template": "tpl-colorClush"
+    },
+    {
+        "id": "colorConquest",
+        "label": "Color Conquest (Two teams)",
+        "description": "Two teams battle to dominate the field. Touch a buoy to claim it for your team — then defend it, or steal it back. The team that holds the most buoys for the longest time wins.",
+		"details": "The field starts dark — no buoys are active. Two teams are assigned a colour each: red and blue. When a player touches any buoy, it lights up in their team's colour (or touch it twice to get their team's colour), claiming it. From that moment, time starts counting for that team. Any buoy can be stolen at any time — touch an opponent's buoy and it instantly switches to your colour, transferring the time count to you. At the end of the round, the team whose colour has been lit up for the longest combined time across all buoys wins.",
+        "template": "tpl-colorConquest"
     }
 ]

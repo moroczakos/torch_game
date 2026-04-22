@@ -59,6 +59,12 @@ function updateTeamColorPreview(count){
     }
 }
 
+function conquestColor(team){
+    if(team === 0) return "#ff0000";
+    if(team === 1) return "#0000ff";
+    return "#444444"; // unlit
+}
+
 /* finish game popup */
 
 function showGameOver(passes){
@@ -79,7 +85,10 @@ function showGameOverTeams(teamPasses){
     const resultDiv = document.getElementById("passResult");
     resultDiv.innerHTML = "";
     teamPasses.forEach((passes, i) => {
-        resultDiv.innerHTML += `<div class="teamScoreRow">Team ${i+1}: ${passes}</div>`;
+        resultDiv.innerHTML += `<div class="teamScoreRow">
+			<span class="teamDot" style="background:${teamColors[i]}"></span>
+			Team ${i+1}: ${passes}
+		</div>`;
     });
 
     const msgEl = document.getElementById("gameOverModal").querySelector("p");
@@ -88,6 +97,35 @@ function showGameOverTeams(teamPasses){
         msgEl.textContent = "Tie between Team " + winners.join(" and Team ") + "!";
     } else {
         msgEl.textContent = "Team " + winners[0] + " wins!";
+    }
+
+    document.getElementById("gameOverModal").classList.add("show");
+}
+
+function showGameOverConquest(teamTimes){
+    const labels = ["Red", "Blue"];
+    const colors = [teamColors[0], teamColors[2]];
+
+    const resultDiv = document.getElementById("passResult");
+    resultDiv.innerHTML = "";
+    teamTimes.forEach((ms, i) => {
+        resultDiv.innerHTML += `
+        <div class="teamScoreRow">
+            <span class="teamDot" style="background:${colors[i]}"></span>
+            ${labels[i]}: ${(ms / 1000).toFixed(1)} s
+        </div>`;
+    });
+
+    const max = Math.max(...teamTimes);
+    const winners = teamTimes
+        .map((t, i) => t === max ? labels[i] : null)
+        .filter(l => l !== null);
+
+    const msgEl = document.getElementById("gameOverModal").querySelector("p");
+    if(winners.length === teamTimes.length){
+        msgEl.textContent = "It's a draw!";
+    } else {
+        msgEl.textContent = winners[0] + " team wins!";
     }
 
     document.getElementById("gameOverModal").classList.add("show");
@@ -179,13 +217,46 @@ async function refresh(){
             </div>`;
         });
     }
+	
+	/* buoy status for colorConquest */
+	const buoyStatus = document.getElementById("buoyStatus");
+	if(buoyStatus && s.buoyColors){
+		buoyStatus.innerHTML = "";
+		s.buoyColors.forEach((color, i) => {
+			buoyStatus.innerHTML += `
+			<div class="statusRow">
+				<span>Buoy ${i}</span>
+				<span class="teamDot" style="background:${conquestColor(color)}"></span>
+			</div>`;
+		});
+	}
+	
+	/* team times for colorConquest */
+	const teamTimes = document.getElementById("teamTimes");
+	if(teamTimes && s.teamTimes){
+		teamTimes.innerHTML = "";
+		const labels = ["Red", "Blue"];
+		const colors = ["#ff0000", "#0000ff"];
+		s.teamTimes.forEach((ms, i) => {
+			teamTimes.innerHTML += `
+			<div class="statusRow">
+				<span class="teamLabel">
+					<span class="teamDot" style="background:${colors[i]}"></span>
+					${labels[i]}
+				</span>
+				<span>${(ms / 1000).toFixed(1)} s</span>
+			</div>`;
+		});
+	}
 
     if(lastRunning && !s.running){
         if(selectedMode === "colorClush" && s.teamPasses){
             showGameOverTeams(s.teamPasses);
-        } else {
-            showGameOver(s.passes);
-        }
+        } else if(selectedMode === "colorConquest" && s.teamTimes){
+			showGameOverConquest(s.teamTimes);
+		} else {
+			showGameOver(s.passes);
+		}
     }
 
     lastRunning = s.running;

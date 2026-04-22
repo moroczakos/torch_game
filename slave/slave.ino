@@ -85,7 +85,7 @@ void loop() {
   // ---- IR SENSOR ----
   int v = digitalRead(IR_PIN);
 
-  if (ledOn && v == LOW && !prevDetect) {
+  if (v == LOW && !prevDetect) {
     prevDetect = true;
 
     Packet p{};

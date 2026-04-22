@@ -288,6 +288,13 @@ button.danger:hover{
     border-radius: 50%;
     display: inline-block;
     flex-shrink: 0;
+	vertical-align: middle;
+}
+
+.teamLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 @media (max-width: 1200px){
@@ -368,8 +375,10 @@ button.danger:hover{
 	}
 	
 	/* Status rows */
-	.statusRow{
-		font-size:27px;
-		padding:6px 0;
+	.statusRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 6px 0;
 	}
 }

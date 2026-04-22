@@ -31,13 +31,16 @@ String  gameMode   = "";
 // =============== GAME STATE ===============
 bool running = false;
 bool prevDetect = false;
-int torchHolder = 0;
 int passCount = 0;
 int duration = 30;
 int teamPasses[MAX_PLAYERS] = {0}; // per-team pass counts for colorClush
-int torchColor = 0;                // current active colour index
 int teamHolder[MAX_PLAYERS] = {0}; // which buoy holds each team's torch
-int numTeams = 2;  
+int numTeams = 2;
+
+// colorConquest state
+int  buoyColor[MAX_PLAYERS];          // -1 = unlit, 0 = red, 1 = blue
+unsigned long buoyClaimedAt[MAX_PLAYERS]; // when current team claimed it
+unsigned long teamTime[2];            // cumulative ms per team
 
 unsigned long startMillis = 0;
 unsigned long lastSeen[MAX_PLAYERS] = {0};
@@ -176,6 +179,48 @@ bool isBuoyTaken(int id, int excludeTeam) {
   return false;
 }
 
+void handleClaim(int buoy) {
+    if (!running) return;
+
+    unsigned long now = millis();
+
+    // accumulate time for previous owner
+    if (buoyColor[buoy] >= 0 && buoyClaimedAt[buoy] > 0) {
+        teamTime[buoyColor[buoy]] += now - buoyClaimedAt[buoy];
+    }
+
+    // toggle: unlit -> random, coloured -> flip to other team
+    if (buoyColor[buoy] < 0) {
+        buoyColor[buoy] = random(2); // 0=red, 1=blue
+    } else {
+        buoyColor[buoy] = 1 - buoyColor[buoy]; // toggle
+    }
+
+    buoyClaimedAt[buoy] = now;
+
+    // send new colour to buoy
+    RGBColor rgb = palette(buoyColor[buoy] == 0 ? 0 : 2); // 0=red, 2=blue
+    Packet p{};
+    p.type       = MSG_LED;
+    p.target     = buoy;
+    p.r          = rgb.r;
+    p.g          = rgb.g;
+    p.b          = rgb.b;
+    p.brightness = brightness;
+    p.team       = buoyColor[buoy];
+
+    if (buoy == MY_ID) {
+        strip.setBrightness(brightness);
+        strip.fill(strip.Color(rgb.r, rgb.g, rgb.b));
+        strip.show();
+        ledOn = true;
+    } else {
+        esp_now_send(peers[buoy], (uint8_t*)&p, sizeof(p));
+    }
+
+    Serial.printf("Buoy %d claimed by team %d\n", buoy, buoyColor[buoy]);
+}
+
 // ========== ESPNOW RECEIVE ================
 void onRecv(const esp_now_recv_info*info,
             const uint8_t*data, int len) {
@@ -192,8 +237,13 @@ void onRecv(const esp_now_recv_info*info,
 
   if (sender >= 0) lastSeen[sender] = millis();
 
-  if (p.type == MSG_SENSOR && sender >= 0)
-    handlePass(sender);
+  if (p.type == MSG_SENSOR && sender >= 0) {
+    if (gameMode == "colorConquest") {
+        handleClaim(sender);
+    } else {
+        handlePass(sender);
+    }
+  }
 }
 
 // ============== WEB =======================
@@ -204,7 +254,7 @@ void sendStatus() {
 
   String s = "{";
   s += "\"running\":" + String(running ? "true" : "false") + ",";
-  s += "\"holder\":" + String(torchHolder) + ",";
+  s += "\"holder\":" + String(teamHolder[0]) + ",";
   s += "\"passes\":" + String(passCount) + ",";
   s += "\"timeLeft\":" + String(left) + ",";
   //s += "\"brightness\":" + String(brightness) + ",";
@@ -225,6 +275,28 @@ void sendStatus() {
       s += String(teamPasses[i]);
       if (i < maxColors - 1) s += ",";
     }
+    s += "]";
+  }
+
+  if(gameMode == "colorConquest"){
+    s += ",\"buoyColors\":[";
+    for(int i = 0; i < MAX_PLAYERS; i++){
+        s += String(buoyColor[i]);
+        if(i < MAX_PLAYERS - 1) s += ",";
+    }
+    s += "]";
+
+    // include live running time for current holders
+    unsigned long now = millis();
+    unsigned long live[2] = {teamTime[0], teamTime[1]};
+    for(int i = 0; i < MAX_PLAYERS; i++){
+        if(buoyColor[i] >= 0 && buoyClaimedAt[i] > 0){
+            live[buoyColor[i]] += now - buoyClaimedAt[i];
+        }
+    }
+
+    s += ",\"teamTimes\":[";
+    s += String(live[0]) + "," + String(live[1]);
     s += "]";
   }
 
@@ -255,8 +327,17 @@ void startGame() {
       teamHolder[t] = id;
       sendTeamLed(id, t, true);
     }
-
-  } else {
+  } 
+  else if(gameMode == "colorConquest"){
+    for(int i = 0; i < MAX_PLAYERS; i++){
+        buoyColor[i] = -1;
+        buoyClaimedAt[i] = 0;
+        sendLed(i, false);
+    }
+    teamTime[0] = 0;
+    teamTime[1] = 0;
+  } 
+  else {
     // colorRush
     teamHolder[0] = 0;
     sendLed(0, true);
@@ -269,7 +350,18 @@ void stopGame() {
   if (gameMode == "colorClush") {
     for (int t = 0; t < numTeams; t++)
       sendTeamLed(teamHolder[t], t, false);
-  } else {
+  } 
+  else if(gameMode == "colorConquest"){
+    unsigned long now = millis();
+    for(int i = 0; i < MAX_PLAYERS; i++){
+        if(buoyColor[i] >= 0 && buoyClaimedAt[i] > 0){
+            teamTime[buoyColor[i]] += now - buoyClaimedAt[i];
+            buoyClaimedAt[i] = 0;
+        }
+        sendLed(i, false);
+    }
+  }
+  else {
     for (int i = 0; i < MAX_PLAYERS; i++)
       sendLed(i, false);
   }
@@ -399,6 +491,8 @@ void loop() {
     if (gameMode == "colorClush") {
       // buoy 0 (master) triggers pass only if it holds a team's torch
       handlePass(MY_ID);
+    } else if (gameMode == "colorConquest") {
+        handleClaim(MY_ID);
     } else {
       if (ledOn) handlePass(MY_ID);
     }
