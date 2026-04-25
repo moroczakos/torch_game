@@ -1,308 +1,277 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8">
         <title>Torch Control Panel</title>
-		<link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
-	
+
         <!-- SIDEBAR -->
-		
-        <div id="sidebar">
-            <h2>🔥 Torch Panel</h2>
-            <button class="menuBtn" onclick="showMenu('dashboard')">Dashboard</button>
-			<button class="menuBtn" onclick="showMenu('modes')">Modes</button>
-            <button class="menuBtn" onclick="showMenu('testing')">Testing</button>
-			<button class="menuBtn" onclick="showMenu('status')">Status</button>
+        <div class="sidebar">
+            <h2 class="sidebar__title">🔥 Torch Panel</h2>
+            <button class="btn btn--menu" onclick="showMenu('dashboard')">Dashboard</button>
+            <button class="btn btn--menu" onclick="showMenu('modes')">Modes</button>
+            <button class="btn btn--menu" onclick="showMenu('testing')">Testing</button>
+            <button class="btn btn--menu" onclick="showMenu('status')">Status</button>
         </div>
-		
+
         <!-- MAIN -->
-		
-        <div id="main">	
+        <div class="main">
+
+            <!-- DASHBOARD -->
             <div id="dashboard" class="menu active">
-				<div class="header">Dashboard</div>
-				<div class="card">		
-					<h3 style="text-align: center;">Welcome to your Torch Game!</h3>
-				
-					<div class="infoBody">
-						<span>Get ready to play. Up to five buoys, each glowing in its own colour, are your playing field. Whether you're playing as a single team or going head-to-head with multiple, the buoys react, shift, and challenge you in every round. Pick a game mode, configure your teams, and get started.
-						</span>
-					</div>
-					
-					<img 
-						src="dashboard.jpg"
-						alt="Five glowing colour-coded buoys on a sports field"
-						width="100%"
-						height="auto"
-						loading="lazy"
-						style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 16px; display: block;"
-					/>
-					
-					<button onclick="showMenu('modes')">Select Game Mode</button>
-				</div>
+                <div class="header">Dashboard</div>
+                <div class="card">
+					<h3 class="card__title--centered">Welcome to your Torch Game!</h3>
+                    <div class="info-body">
+                        <span>Get ready to play. Up to five buoys, each glowing in its own colour, are your playing field. Whether you're playing as a single team or going head-to-head with multiple, the buoys react, shift, and challenge you in every round. Pick a game mode, configure your teams, and get started.</span>
+                    </div>
+                    <img
+						class="dashboard-img"
+                        src="dashboard.jpg"
+                        alt="Five glowing colour-coded buoys on a sports field"
+                        width="100%"
+                        height="auto"
+                        loading="lazy"                     
+                    />
+                    <button class="btn" onclick="showMenu('modes')">Select Game Mode</button>
+                </div>
             </div>
-			
-			<!-- MODES MENU -->
-			<div id="modes" class="menu">				
-				<div class="header">Mode selection</div>
-				<div class="card">
-					<div class="modeList"></div>				
-                </div>	
-			</div>
-			
-            <!-- TEST MENU -->			
+
+            <!-- MODES MENU -->
+            <div id="modes" class="menu">
+                <div class="header">Mode Selection</div>
+                <div class="card">
+                    <div class="mode-list"></div>
+                </div>
+            </div>
+
+            <!-- TESTING MENU -->
             <div id="testing" class="menu">
                 <div class="header">Torch Testing</div>
                 <div class="card">
-                    <div id="tests"></div>
-                </div>				
+                    <div id="tests" class="tests-grid"></div>
+                </div>
             </div>
-			
-			<!-- TORCH STATUS MENU -->
-			<div id="status" class="menu">
-				<div class="header">Torch Status</div>
-				<div class="card">
-					<div id="players"></div>
-				</div>
-			</div>
-			
-			<div id="selectedMode" class="menu">	
-				<div id="modeControls"></div>
-			</div>
+
+            <!-- STATUS MENU -->
+            <div id="status" class="menu">
+                <div class="header">Torch Status</div>
+                <div class="card">
+                    <div id="players"></div>
+                </div>
+            </div>
+
+            <!-- SELECTED MODE -->
+            <div id="selectedMode" class="menu">
+                <div id="modeControls"></div>
+            </div>
+
         </div>
-		
-		
-		
-		<!-- GAME OVER MODAL -->		
-		<div id="gameOverModal" class="modal">
-			<div class="modalCard">
-				<h2>🔥 Game Finished</h2>
-				<p>Total Passes</p>
-				<div id="passResult" class="bigNumber">0</div>
 
-				<button onclick="closeModal()">OK</button>
-			</div>
-		</div>
-		
-		<!-- INFO MODAL -->
-		<div id="infoModal" class="modal">
-			<div class="modalCard">
-				<h2 id="infoTitle">Mode Info</h2>
-				
-				<div class="infoBody">
-					<p id="infoText"></p>
-					<p id="infoDetails" class="infoDetails"></p>
-				</div>
-				
-				<button onclick="closeInfoModal()">OK</button>
-			</div>
-		</div>
-		
-		<!-- MODE TEMPLATES (hidden) -->
-		<!-- ColorRush -->
-		<template id="tpl-colorRush">
-			<div class="header">Color Rush</div>
-                <div class="grid">		
-					<div class="card">
-					
-						<!-- GAME SETTINGS -->
-						<h3>Game Settings</h3>
-						<form id="gameForm">
-							<div class="stepperRow">
-								<label>Players</label>
-								<div class="stepper">
-									<button type="button" onclick="step('colors',-1)">−</button>
-									<span id="colorsVal">3</span>
-									<input type="hidden" name="colors" id="colors" value="3">
-									<button type="button" onclick="step('colors',1)">+</button>
-								</div>
-							</div>
-							<div id="teamColorPreview" class="teamColorPreview"></div>
-							<div class="stepperRow">
-								<label>Duration</label>
-								<div class="stepper">
-									<button type="button" onclick="step('time',-5)">−</button>
-									<span id="timeVal">30</span>
-									<input type="hidden" name="time" id="time" value="30">
-									<button type="button" onclick="step('time',5)">+</button>
-								</div>
-							</div>
-							<div>
-								<label>Brightness:</label>
-								<input type="range" id="bright" min="1" max="255" value="40">
-								(<span id="bVal">40</span>)
-							</div>
-						</form>
-					</div>
 
-					<!-- GAME CONTROLS -->
-					<div class="card">
-						<h3>Game Controls</h3>
-						<button onclick="startGame()">Start Game</button>
-						<button class="danger" onclick="stopGame()">Stop</button>
-						<button onclick="restartGame()">Restart</button>
-					</div>
-					
-					<!-- GAME STATUS -->					
-					<div class="card">
-						<h3>Status</h3>
-						<div class="statusRow">
-							<span>Running</span>
-							<span id="run">no</span>
-						</div>
-						<div class="statusRow">
-							<span>Holder</span>
-							<span id="holder">-</span>
-						</div>
-						<div class="statusRow">
-							<span>Passes</span>
-							<span id="count">0</span>
-						</div>
-						<div class="statusRow">
-							<span>Time</span>
-							<span><span id="timeLeft">0</span> s</span>
-						</div>
-					</div>
-				</div>
-			</div>
-		</template>
-		
-		<!-- ColorClush -->
-		<template id="tpl-colorClush">
-			<div class="header">Color Clush</div>
-                <div class="grid">		
-					<div class="card">
-					
-						<!-- GAME SETTINGS -->
-						<h3>Game Settings</h3>
-						<form id="gameForm">
-							<div class="stepperRow">
-								<label>Teams</label>
-								<div class="stepper">
-									<button type="button" onclick="step('colors',-1)">−</button>
-									<span id="colorsVal">2</span>
-									<input type="hidden" name="colors" id="colors" value="2">
-									<button type="button" onclick="step('colors',1)">+</button>									
-								</div>								
-							</div>
-							<div id="teamColorPreview" class="teamColorPreview"></div>
-							<div class="stepperRow">
-								<label>Duration</label>
-								<div class="stepper">
-									<button type="button" onclick="step('time',-5)">−</button>
-									<span id="timeVal">30</span>
-									<input type="hidden" name="time" id="time" value="30">
-									<button type="button" onclick="step('time',5)">+</button>
-								</div>
-							</div>
-							<div>
-								<label>Brightness:</label>
-								<input type="range" id="bright" min="1" max="255" value="40">
-								(<span id="bVal">40</span>)
-							</div>
-						</form>
-					</div>
+        <!-- GAME OVER MODAL -->
+        <div id="gameOverModal" class="modal">
+            <div class="modal-card">
+                <h2>🔥 Game Finished</h2>
+                <p>Total Passes</p>
+                <div id="passResult" class="big-number">0</div>
+                <button class="btn" onclick="closeModal()">OK</button>
+            </div>
+        </div>
 
-					<!-- GAME CONTROLS -->
-					<div class="card">
-						<h3>Game Controls</h3>
-						<button onclick="startGame()">Start Game</button>
-						<button class="danger" onclick="stopGame()">Stop</button>
-						<button onclick="restartGame()">Restart</button>
-					</div>
-					
-					<!-- GAME STATUS -->					
-					<div class="card">
-						<h3>Status</h3>
-						<div class="statusRow">
-							<span>Running</span>
-							<span id="run">no</span>
-						</div>
-						<div class="statusRow">
-							<span>Holder</span>
-							<span id="holder">-</span>
-						</div>
-						<div class="statusRow">
-							<span>Time</span>
-							<span><span id="timeLeft">0</span> s</span>
-						</div>
-					</div>
-					
-					<!-- TEAM SCORES -->
-					<div class="card">
-						<h3>Team Scores</h3>
-						<div id="teamScores"></div>
-					</div>
-				</div>
-			</div>
-		</template>
-		
-		<!-- ColorConquest -->
-		<template id="tpl-colorConquest">
-			<div class="header">Color Conquest</div>
-			<div class="grid">
+        <!-- INFO MODAL -->
+        <div id="infoModal" class="modal">
+            <div class="modal-card">
+                <h2 id="infoTitle">Mode Info</h2>
+                <div class="info-body">
+                    <p id="infoText"></p>
+                    <p id="infoDetails" class="info-details"></p>
+                </div>
+                <button class="btn" onclick="closeInfoModal()">OK</button>
+            </div>
+        </div>
 
-				<!-- GAME SETTINGS -->
-				<div class="card">
-					<h3>Game Settings</h3>
-					<form id="gameForm">
-						<input type="hidden" name="colors" id="colors" value="2">
-						<div class="stepperRow">
-							<label>Duration</label>
-							<div class="stepper">
-								<button type="button" onclick="step('time',-5)">−</button>
-								<span id="timeVal">30</span>
-								<input type="hidden" name="time" id="time" value="30">
-								<button type="button" onclick="step('time',5)">+</button>
-							</div>
-						</div>
-						<div>
-							<label>Brightness:</label>
-							<input type="range" id="bright" min="1" max="255" value="40">
-							(<span id="bVal">40</span>)
-						</div>
-					</form>
-				</div>
 
-				<!-- GAME CONTROLS -->
-				<div class="card">
-					<h3>Game Controls</h3>
-					<button onclick="startGame()">Start Game</button>
-					<button class="danger" onclick="stopGame()">Stop</button>
-					<button onclick="restartGame()">Restart</button>
-				</div>
+        <!-- MODE TEMPLATES (hidden) -->
 
-				<!-- GAME STATUS -->
-				<div class="card">
-					<h3>Status</h3>
-					<div class="statusRow">
-						<span>Running</span>
-						<span id="run">no</span>
-					</div>
-					<div class="statusRow">
-						<span>Time</span>
-						<span><span id="timeLeft">0</span> s</span>
-					</div>
-				</div>
+        <!-- ColorRush -->
+        <template id="tpl-colorRush">
+            <div class="header">Color Rush</div>
+            <div class="grid">
 
-				<!-- BUOY STATUS -->
-				<div class="card">
-					<h3>Buoys</h3>
-					<div id="buoyStatus"></div>
-				</div>
+                <!-- GAME SETTINGS -->
+                <div class="card">
+                    <h3>Game Settings</h3>
+                    <form id="gameForm">
+                        <div class="stepper-row">
+                            <label>Players</label>
+                            <div class="stepper">
+                                <button type="button" onclick="step('colors',-1)">−</button>
+                                <span id="colorsVal">3</span>
+                                <input type="hidden" name="colors" id="colors" value="3">
+                                <button type="button" onclick="step('colors',1)">+</button>
+                            </div>
+                        </div>
+                        <div id="teamColorPreview" class="team-color-preview"></div>
+                        <div class="stepper-row">
+                            <label>Duration</label>
+                            <div class="stepper">
+                                <button type="button" onclick="step('time',-5)">−</button>
+                                <span id="timeVal">30</span>
+                                <input type="hidden" name="time" id="time" value="30">
+                                <button type="button" onclick="step('time',5)">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Brightness:</label>
+                            <input type="range" id="bright" min="1" max="255" value="40">
+                            (<span id="bVal">40</span>)
+                        </div>
+                    </form>
+                </div>
 
-				<!-- TEAM TIMES -->
-				<div class="card">
-					<h3>Team Times</h3>
-					<div id="teamTimes"></div>
-				</div>
+                <!-- GAME CONTROLS -->
+                <div class="card">
+                    <h3>Game Controls</h3>
+                    <button class="btn" onclick="startGame()">Start Game</button>
+                    <button class="btn btn--danger" onclick="stopGame()">Stop</button>
+                    <button class="btn" onclick="restartGame()">Restart</button>
+                </div>
 
-			</div>
-		</template>
-		
-		<script src="modes_data.js"></script>
-		<script src="app.js"></script>
-		
+                <!-- GAME STATUS -->
+                <div class="card">
+                    <h3>Status</h3>
+                    <div class="status-row"><span>Running</span><span id="run">no</span></div>
+                    <div class="status-row"><span>Holder</span><span id="holder">-</span></div>
+                    <div class="status-row"><span>Passes</span><span id="count">0</span></div>
+                    <div class="status-row"><span>Time</span><span><span id="timeLeft">0</span> s</span></div>
+                </div>
+
+            </div>
+        </template>
+
+        <!-- ColorClush -->
+        <template id="tpl-colorClush">
+            <div class="header">Color Clush</div>
+            <div class="grid">
+
+                <!-- GAME SETTINGS -->
+                <div class="card">
+                    <h3>Game Settings</h3>
+                    <form id="gameForm">
+                        <div class="stepper-row">
+                            <label>Teams</label>
+                            <div class="stepper">
+                                <button type="button" onclick="step('colors',-1)">−</button>
+                                <span id="colorsVal">2</span>
+                                <input type="hidden" name="colors" id="colors" value="2">
+                                <button type="button" onclick="step('colors',1)">+</button>
+                            </div>
+                        </div>
+                        <div id="teamColorPreview" class="team-color-preview"></div>
+                        <div class="stepper-row">
+                            <label>Duration</label>
+                            <div class="stepper">
+                                <button type="button" onclick="step('time',-5)">−</button>
+                                <span id="timeVal">30</span>
+                                <input type="hidden" name="time" id="time" value="30">
+                                <button type="button" onclick="step('time',5)">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Brightness:</label>
+                            <input type="range" id="bright" min="1" max="255" value="40">
+                            (<span id="bVal">40</span>)
+                        </div>
+                    </form>
+                </div>
+
+                <!-- GAME CONTROLS -->
+                <div class="card">
+                    <h3>Game Controls</h3>
+                    <button class="btn" onclick="startGame()">Start Game</button>
+                    <button class="btn btn--danger" onclick="stopGame()">Stop</button>
+                    <button class="btn" onclick="restartGame()">Restart</button>
+                </div>
+
+                <!-- GAME STATUS -->
+                <div class="card">
+                    <h3>Status</h3>
+                    <div class="status-row"><span>Running</span><span id="run">no</span></div>
+                    <div class="status-row"><span>Holder</span><span id="holder">-</span></div>
+                    <div class="status-row"><span>Time</span><span><span id="timeLeft">0</span> s</span></div>
+                </div>
+
+                <!-- TEAM SCORES -->
+                <div class="card">
+                    <h3>Team Scores</h3>
+                    <div id="teamScores"></div>
+                </div>
+
+            </div>
+        </template>
+
+        <!-- ColorConquest -->
+        <template id="tpl-colorConquest">
+            <div class="header">Color Conquest</div>
+            <div class="grid">
+
+                <!-- GAME SETTINGS -->
+                <div class="card">
+                    <h3>Game Settings</h3>
+                    <form id="gameForm">
+                        <input type="hidden" name="colors" id="colors" value="2">
+                        <div class="stepper-row">
+                            <label>Duration</label>
+                            <div class="stepper">
+                                <button type="button" onclick="step('time',-5)">−</button>
+                                <span id="timeVal">30</span>
+                                <input type="hidden" name="time" id="time" value="30">
+                                <button type="button" onclick="step('time',5)">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Brightness:</label>
+                            <input type="range" id="bright" min="1" max="255" value="40">
+                            (<span id="bVal">40</span>)
+                        </div>
+                    </form>
+                </div>
+
+                <!-- GAME CONTROLS -->
+                <div class="card">
+                    <h3>Game Controls</h3>
+                    <button class="btn" onclick="startGame()">Start Game</button>
+                    <button class="btn btn--danger" onclick="stopGame()">Stop</button>
+                    <button class="btn" onclick="restartGame()">Restart</button>
+                </div>
+
+                <!-- GAME STATUS -->
+                <div class="card">
+                    <h3>Status</h3>
+                    <div class="status-row"><span>Running</span><span id="run">no</span></div>
+                    <div class="status-row"><span>Time</span><span><span id="timeLeft">0</span> s</span></div>
+                </div>
+
+                <!-- BUOY STATUS -->
+                <div class="card">
+                    <h3>Buoys</h3>
+                    <div id="buoyStatus"></div>
+                </div>
+
+                <!-- TEAM TIMES -->
+                <div class="card">
+                    <h3>Team Times</h3>
+                    <div id="teamTimes"></div>
+                </div>
+
+            </div>
+        </template>
+
+        <script src="modes_data.js"></script>
+        <script src="app.js"></script>
+
     </body>
 </html>

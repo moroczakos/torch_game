@@ -161,6 +161,7 @@ void handlePass(int fromId) {
 
   } else {
     // colorRush — original behaviour
+    if (teamHolder[0] != fromId) return; // only handle if fromId is the current holder
     sendLed(teamHolder[0], false);
     int next = nextPlayer();
     teamHolder[0] = next;
