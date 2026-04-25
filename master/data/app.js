@@ -300,6 +300,7 @@ let selectedMode = null;
 
 function selectMode(id) {
     selectedMode = id;
+    fetch("/mode");
 
     const mode = modesData.find(m => m.id === id);
     const tpl = document.getElementById(mode.template);

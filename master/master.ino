@@ -5,9 +5,14 @@
 #include <SPIFFS.h>
 #include <Adafruit_NeoPixel.h>
 #include "common.h"
+#include "GameContext.h"
+#include "IGameMode.h"
+#include "ColorRush.h"
+#include "ColorClush.h"
+#include "ColorConquest.h"
 
 // ================= CONFIG =================
-#define MY_ID 0              // Master is player 0
+#define MY_ID 0
 
 const char* ssid = "ESP32-Game";
 const char* pass = "12345678";
@@ -23,212 +28,47 @@ uint8_t peers[MAX_PLAYERS][6] = {
   {0x58, 0x8C, 0x81, 0xAA, 0x9C, 0x58}
 };
 
-bool    ledOn      = false;
 uint8_t brightness = 40;
 int     maxColors  = 3;
 String  gameMode   = "";
+bool    running    = false;
+bool    prevDetect = false;
+bool    ledOn      = false;
+int     duration   = 30;
 
-// =============== GAME STATE ===============
-bool running = false;
-bool prevDetect = false;
-int passCount = 0;
-int duration = 30;
-int teamPasses[MAX_PLAYERS] = {0}; // per-team pass counts for colorClush
-int teamHolder[MAX_PLAYERS] = {0}; // which buoy holds each team's torch
-int numTeams = 2;
+unsigned long startMillis              = 0;
+unsigned long lastSeen[MAX_PLAYERS]    = {0};
+bool          active[MAX_PLAYERS]      = {true, false, false, false, false};
+String lastResult = "";
 
-// colorConquest state
-int  buoyColor[MAX_PLAYERS];          // -1 = unlit, 0 = red, 1 = blue
-unsigned long buoyClaimedAt[MAX_PLAYERS]; // when current team claimed it
-unsigned long teamTime[2];            // cumulative ms per team
+// ================ STRATEGY ================
+GameContext ctx;
 
-unsigned long startMillis = 0;
-unsigned long lastSeen[MAX_PLAYERS] = {0};
-bool active[MAX_PLAYERS] = {true, false, false, false, false};
+static ColorRush     modeRush(ctx);
+static ColorClush    modeClush(ctx);
+static ColorConquest modeConquest(ctx);
+
+IGameMode* game = &modeRush;
 
 WebServer server(80);
 
-// ============== HELPER ==================
+// ============== HELPER ====================
 void printAllArgs(String endpoint) {
   Serial.printf("Endpoint called: %s\n", endpoint.c_str());
-
   int count = server.args();
   Serial.printf("Got %d args:\n", count);
-
   for (int i = 0; i < count; i++) {
-    Serial.printf(
-      "Arg %d -> Name: %s | Value: %s\n",
-      i,
-      server.argName(i).c_str(),
-      server.arg(i).c_str()
-    );
+    Serial.printf("Arg %d -> Name: %s | Value: %s\n",
+      i, server.argName(i).c_str(), server.arg(i).c_str());
   }
-
   Serial.println();
 }
 
-// ============= SEND LED ===================
-// For ColorRush
-void sendLed(int id, bool on) {
-  if (id == MY_ID) {
-    if (on) lightRandom();
-    else    clearLed();
-    ledOn = on;
-    return;
-  }
-
-  RGBColor rgb = palette(random(maxColors));
-  Packet p{};
-  p.type = on ? MSG_LED : MSG_STOP;
-  p.target = id;
-  p.r = rgb.r;
-  p.g = rgb.g;
-  p.b = rgb.b;
-  p.brightness = brightness;
-
-  esp_now_send(peers[id], (uint8_t*)&p, sizeof(p));
-}
-
-// Send a team's torch to a specific buoy (on or off)
-void sendTeamLed(int id, int team, bool on) {
-  RGBColor rgb = palette(team); // team index = fixed colour
-  
-  if (id == MY_ID) {
-    if (on) {
-      strip.setBrightness(brightness);
-      strip.fill(strip.Color(rgb.r, rgb.g, rgb.b));
-      strip.show();
-    } else {
-      // only clear if no other team is on this buoy
-      clearLed();
-    }
-    ledOn = on;
-    return;
-  }
-
-  Packet p{};
-  p.type      = on ? MSG_LED : MSG_STOP;
-  p.target    = id;
-  p.r         = rgb.r;
-  p.g         = rgb.g;
-  p.b         = rgb.b;
-  p.brightness = brightness;
-  p.team      = team;
-
-  printPacket(p);
-  esp_now_send(peers[id], (uint8_t*)&p, sizeof(p));
-}
-
-// =========== NEXT PLAYER ==================
-int nextPlayer() {
-  int id;
-  do {
-    id = random(MAX_PLAYERS);
-  } while (!active[id]);
-  return id;
-}
-
-// =========== HANDLE PASS ==================
-void handlePass(int fromId) {
-  if (!running) return;
-
-  if (gameMode == "colorClush") {
-    // find which team this buoy belongs to
-    int team = -1;
-    for (int t = 0; t < numTeams; t++) {
-      if (teamHolder[t] == fromId) { team = t; break; }
-    }
-    if (team == -1) return; // buoy not holding any team's torch
-
-    teamPasses[team]++;
-    passCount++;
-
-    // turn off current buoy for this team
-    sendTeamLed(fromId, team, false);
-
-    // pick next buoy that is active AND not held by any other team
-    int next;
-    int attempts = 0;
-    do {
-      next = nextPlayer();
-      attempts++;
-      if (attempts > 100) { next = fromId; break; } // fallback: stay if no free buoy
-    } while (next == fromId || isBuoyTaken(next, team));
-    
-    teamHolder[team] = next;
-    sendTeamLed(next, team, true);
-    Serial.printf("Team %d: buoy %d -> %d\n", team, fromId, next);
-
-  } else {
-    // colorRush — original behaviour
-    if (teamHolder[0] != fromId) return; // only handle if fromId is the current holder
-    sendLed(teamHolder[0], false);
-    int next = nextPlayer();
-    teamHolder[0] = next;
-    passCount++;
-    sendLed(next, true);
-    Serial.printf("Torch %d -> %d\n", fromId, next);
-  }
-}
-
-// returns true if the buoy is currently held by any team other than 'excludeTeam'
-bool isBuoyTaken(int id, int excludeTeam) {
-  for (int t = 0; t < numTeams; t++) {
-    if (t == excludeTeam) continue;
-    if (teamHolder[t] == id) return true;
-  }
-  return false;
-}
-
-void handleClaim(int buoy) {
-    if (!running) return;
-
-    unsigned long now = millis();
-
-    // accumulate time for previous owner
-    if (buoyColor[buoy] >= 0 && buoyClaimedAt[buoy] > 0) {
-        teamTime[buoyColor[buoy]] += now - buoyClaimedAt[buoy];
-    }
-
-    // toggle: unlit -> random, coloured -> flip to other team
-    if (buoyColor[buoy] < 0) {
-        buoyColor[buoy] = random(2); // 0=red, 1=blue
-    } else {
-        buoyColor[buoy] = 1 - buoyColor[buoy]; // toggle
-    }
-
-    buoyClaimedAt[buoy] = now;
-
-    // send new colour to buoy
-    RGBColor rgb = palette(buoyColor[buoy] == 0 ? 0 : 2); // 0=red, 2=blue
-    Packet p{};
-    p.type       = MSG_LED;
-    p.target     = buoy;
-    p.r          = rgb.r;
-    p.g          = rgb.g;
-    p.b          = rgb.b;
-    p.brightness = brightness;
-    p.team       = buoyColor[buoy];
-
-    if (buoy == MY_ID) {
-        strip.setBrightness(brightness);
-        strip.fill(strip.Color(rgb.r, rgb.g, rgb.b));
-        strip.show();
-        ledOn = true;
-    } else {
-        esp_now_send(peers[buoy], (uint8_t*)&p, sizeof(p));
-    }
-
-    Serial.printf("Buoy %d claimed by team %d\n", buoy, buoyColor[buoy]);
-}
-
 // ========== ESPNOW RECEIVE ================
-void onRecv(const esp_now_recv_info*info,
-            const uint8_t*data, int len) {
-
+void onRecv(const esp_now_recv_info* info,
+            const uint8_t* data, int len) {
   Packet p;
   memcpy(&p, data, sizeof(p));
-
   printPacket(p);
 
   int sender = -1;
@@ -238,67 +78,29 @@ void onRecv(const esp_now_recv_info*info,
 
   if (sender >= 0) lastSeen[sender] = millis();
 
-  if (p.type == MSG_SENSOR && sender >= 0) {
-    if (gameMode == "colorConquest") {
-        handleClaim(sender);
-    } else {
-        handlePass(sender);
-    }
-  }
+  if (p.type == MSG_SENSOR && sender >= 0 && running)
+    game->handleSensor(sender);
 }
 
 // ============== WEB =======================
 void sendStatus() {
-  int left = running ?
-             max(0, duration - (int)((millis() - startMillis) / 1000))
-             : 0;
+  // update active[] from lastSeen before building status
+  for (int i = 1; i < MAX_PLAYERS; i++)
+    active[i] = (millis() - lastSeen[i] < 3000);
 
   String s = "{";
   s += "\"running\":" + String(running ? "true" : "false") + ",";
-  s += "\"holder\":" + String(teamHolder[0]) + ",";
-  s += "\"passes\":" + String(passCount) + ",";
-  s += "\"timeLeft\":" + String(left) + ",";
-  //s += "\"brightness\":" + String(brightness) + ",";
-  s += "\"online\":[";
-  s += "true,";
+  s += "\"online\":[true,";
   for (int i = 1; i < MAX_PLAYERS; i++) {
-    bool peerOn = (millis() - lastSeen[i] < 3000);
-    s += peerOn ? "true" : "false";
-    if (i < MAX_PLAYERS - 1)s += ",";
-    active[i] = peerOn;
+    s += active[i] ? "true" : "false";
+    if (i < MAX_PLAYERS - 1) s += ",";
   }
-
   s += "]";
-  
-  if (gameMode == "colorClush") {
-    s += ",\"teamPasses\":[";
-    for (int i = 0; i < maxColors; i++) {
-      s += String(teamPasses[i]);
-      if (i < maxColors - 1) s += ",";
-    }
-    s += "]";
-  }
 
-  if(gameMode == "colorConquest"){
-    s += ",\"buoyColors\":[";
-    for(int i = 0; i < MAX_PLAYERS; i++){
-        s += String(buoyColor[i]);
-        if(i < MAX_PLAYERS - 1) s += ",";
-    }
-    s += "]";
-
-    // include live running time for current holders
-    unsigned long now = millis();
-    unsigned long live[2] = {teamTime[0], teamTime[1]};
-    for(int i = 0; i < MAX_PLAYERS; i++){
-        if(buoyColor[i] >= 0 && buoyClaimedAt[i] > 0){
-            live[buoyColor[i]] += now - buoyClaimedAt[i];
-        }
-    }
-
-    s += ",\"teamTimes\":[";
-    s += String(live[0]) + "," + String(live[1]);
-    s += "]";
+  if (running) {
+      game->appendStatus(s);
+  } else if (lastResult.length() > 0) {
+      s += lastResult;
   }
 
   s += "}";
@@ -306,112 +108,72 @@ void sendStatus() {
 }
 
 void startGame() {
-  running    = true;
+  running     = true;
   startMillis = millis();
-  passCount  = 0;
-  for (int i = 0; i < MAX_PLAYERS; i++) teamPasses[i] = 0;
-
-  if (gameMode == "colorClush") {
-    numTeams = maxColors;
-
-    // Prevent assigning more teams than active buoys
-    int activeCnt = 0;
-    for (int i = 0; i < MAX_PLAYERS; i++) if (active[i]) activeCnt++;
-    if (numTeams > activeCnt) numTeams = activeCnt; // cap teams to available buoys
-
-    // assign each team a different starting buoy
-    bool used[MAX_PLAYERS] = {false};
-    for (int t = 0; t < numTeams; t++) {
-      int id;
-      do { id = nextPlayer(); } while (used[id]);
-      used[id]    = true;
-      teamHolder[t] = id;
-      sendTeamLed(id, t, true);
-    }
-  } 
-  else if(gameMode == "colorConquest"){
-    for(int i = 0; i < MAX_PLAYERS; i++){
-        buoyColor[i] = -1;
-        buoyClaimedAt[i] = 0;
-        sendLed(i, false);
-    }
-    teamTime[0] = 0;
-    teamTime[1] = 0;
-  } 
-  else {
-    // colorRush
-    teamHolder[0] = 0;
-    sendLed(0, true);
-  }
+  ctx.brightness = brightness; // sync latest brightness into context
+  game->start(maxColors, duration);
 }
 
 void stopGame() {
   running = false;
-  
-  if (gameMode == "colorClush") {
-    for (int t = 0; t < numTeams; t++)
-      sendTeamLed(teamHolder[t], t, false);
-  } 
-  else if(gameMode == "colorConquest"){
-    unsigned long now = millis();
-    for(int i = 0; i < MAX_PLAYERS; i++){
-        if(buoyColor[i] >= 0 && buoyClaimedAt[i] > 0){
-            teamTime[buoyColor[i]] += now - buoyClaimedAt[i];
-            buoyClaimedAt[i] = 0;
-        }
-        sendLed(i, false);
-    }
-  }
-  else {
-    for (int i = 0; i < MAX_PLAYERS; i++)
-      sendLed(i, false);
-  }
+  game->stop();
+
+  lastResult = "";
+  game->appendStatus(lastResult);
 }
 
 void setupWeb() {
-  server.serveStatic("/", SPIFFS, "/index.html");
-  server.serveStatic("/style.css", SPIFFS, "/style.css");
-  server.serveStatic("/app.js", SPIFFS, "/app.js");
-  server.serveStatic("/modes_data.js", SPIFFS, "/modes_data.js");
-  server.serveStatic("/dashboard.jpg", SPIFFS, "/dashboard.jpg");
+  server.serveStatic("/",               SPIFFS, "/index.html");
+  server.serveStatic("/style.css",      SPIFFS, "/style.css");
+  server.serveStatic("/app.js",         SPIFFS, "/app.js");
+  server.serveStatic("/modes_data.js",  SPIFFS, "/modes_data.js");
+  server.serveStatic("/dashboard.jpg",  SPIFFS, "/dashboard.jpg");
 
   server.on("/start", []() {
     printAllArgs("/start");
 
-    if (server.hasArg("colors"))
-      maxColors = server.arg("colors").toInt();
+    if (server.hasArg("colors")) maxColors = server.arg("colors").toInt();
+    if (server.hasArg("time"))   duration  = server.arg("time").toInt();
+    if (server.hasArg("mode"))   gameMode  = server.arg("mode");
 
-    if (server.hasArg("time"))
-      duration = server.arg("time").toInt();
-
-    if (server.hasArg("mode"))
-      gameMode = server.arg("mode");
+    if      (gameMode == "colorRush")     game = &modeRush;
+    else if (gameMode == "colorClush")    game = &modeClush;
+    else if (gameMode == "colorConquest") game = &modeConquest;
 
     startGame();
-    Serial.println("🏁 Game started!");
+    server.send(200, "text/plain", "OK");
+    Serial.println("Game started!");
   });
 
   server.on("/stop", []() {
     printAllArgs("/stop");
-
     stopGame();
-    Serial.println("🛑 Game stopped.");
+    server.send(200, "text/plain", "OK");
+    Serial.println("Game stopped.");
   });
 
   server.on("/restart", []() {
     printAllArgs("/restart");
-
     stopGame();
     delay(200);
     startGame();
-    Serial.println("🔁 Game restarted!");
+    server.send(200, "text/plain", "OK");
+    Serial.println("Game restarted!");
   });
 
   server.on("/brightness", HTTP_GET, []() {
     printAllArgs("/brightness");
+    if (server.hasArg("value")) {
+      brightness     = server.arg("value").toInt();
+      ctx.brightness = brightness;
+    }
+    server.send(200, "text/plain", "OK");
+  });
 
-    if (server.hasArg("value"))
-      brightness = server.arg("value").toInt();
+  server.on("/mode", HTTP_GET, []() {
+    printAllArgs("/mode");
+    lastResult = "";
+    server.send(200, "text/plain", "OK");
   });
 
   server.on("/test", HTTP_GET, []() {
@@ -435,23 +197,21 @@ void setupWeb() {
     }
 
     RGBColor rgb = palette(random(maxColors));
-
     Packet p{};
-    p.type = MSG_TEST;
-    p.target = id;
-    p.r = rgb.r;
-    p.g = rgb.g;
-    p.b = rgb.b;
+    p.type       = MSG_TEST;
+    p.target     = id;
+    p.r          = rgb.r;
+    p.g          = rgb.g;
+    p.b          = rgb.b;
     p.brightness = brightness;
-
     printPacket(p);
-
     esp_now_send(peers[id], (uint8_t*)&p, sizeof(p));
+
+    server.send(200, "text/plain", "OK");
   });
 
   server.on("/status", []() {
     printAllArgs("/status");
-
     sendStatus();
   });
 
@@ -462,6 +222,13 @@ void setupWeb() {
 void setup() {
   initHardware();
 
+  // populate context
+  ctx.active    = active;
+  ctx.lastSeen  = lastSeen;
+  ctx.brightness = brightness;
+  ctx.peers     = peers;
+  ctx.strip     = &strip;
+
   WiFi.mode(WIFI_AP_STA);
   initEspNow(onRecv);
   for (int i = 1; i < MAX_PLAYERS; i++) addPeer(i);
@@ -470,7 +237,7 @@ void setup() {
   delay(100);
 
   Serial.print("AP IP: ");
-  Serial.println(WiFi.softAPIP()); // Will print 192.168.4.1
+  Serial.println(WiFi.softAPIP());
 
   SPIFFS.begin(true);
   setupWeb();
@@ -481,22 +248,15 @@ void setup() {
 void loop() {
   server.handleClient();
 
-  if (running &&
-      millis() - startMillis > duration * 1000)
+  // timer expiry
+  if (running && millis() - startMillis > (unsigned long)duration * 1000)
     stopGame();
 
-  // Master IR
+  // master IR
   int v = digitalRead(IR_PIN);
   if (v == LOW && !prevDetect) {
     prevDetect = true;
-    if (gameMode == "colorClush") {
-      // buoy 0 (master) triggers pass only if it holds a team's torch
-      handlePass(MY_ID);
-    } else if (gameMode == "colorConquest") {
-        handleClaim(MY_ID);
-    } else {
-      if (ledOn) handlePass(MY_ID);
-    }
+    if (running) game->handleSensor(MY_ID);
   }
   if (v == HIGH) prevDetect = false;
 }
