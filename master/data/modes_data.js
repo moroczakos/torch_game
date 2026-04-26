@@ -7,6 +7,13 @@ const modesData = [
         "template": "tpl-colorRush"
     },
     {
+        "id": "masterRush",
+        "label": "Master Rush (One team)",
+        "description": "Master Rush is a fast-paced team game with a twist — every pass must be confirmed. Touch your coloured buoy to score, then race to the glowing white Master buoy to lock it in. Miss the Master and the point won't count. Speed and discipline win the round.",
+        "details": "One buoy is designated the Master buoy for the entire round. When the clock starts, one of the remaining buoys lights up in a random colour. If it matches your colour, rush to it and make the pass — but the point is not confirmed yet. The Master buoy immediately glows white, signalling that a player must touch it to lock in the score. Once the Master is touched, it goes dark and a new random coloured buoy lights up somewhere on the field. The action never stops, the targets keep shifting and every confirmation counts. The team that makes the most confirmed passes before the timeout wins the round.",
+        "template": "tpl-masterRush"
+    },
+    {
         "id": "colorClush",
         "label": "Color Clash (Multiple teams)",
         "description": "ColorClash is a fast-paced multiplayer game where two or more teams compete on the same field at the same time. Each team has their own colour — and their own buoy to chase. The team that makes the most passes before time runs out wins the round.",

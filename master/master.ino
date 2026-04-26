@@ -10,6 +10,7 @@
 #include "ColorRush.h"
 #include "ColorClush.h"
 #include "ColorConquest.h"
+#include "MasterRush.h"
 
 // ================= CONFIG =================
 #define MY_ID 0
@@ -47,6 +48,7 @@ GameContext ctx;
 static ColorRush     modeRush(ctx);
 static ColorClush    modeClush(ctx);
 static ColorConquest modeConquest(ctx);
+static MasterRush modeMasterRush(ctx);
 
 IGameMode* game = &modeRush;
 
@@ -139,6 +141,7 @@ void setupWeb() {
     if      (gameMode == "colorRush")     game = &modeRush;
     else if (gameMode == "colorClush")    game = &modeClush;
     else if (gameMode == "colorConquest") game = &modeConquest;
+    else if (gameMode == "masterRush") game = &modeMasterRush;
 
     startGame();
     server.send(200, "text/plain", "OK");

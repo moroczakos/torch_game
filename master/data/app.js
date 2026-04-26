@@ -199,10 +199,10 @@ async function refresh(){
     const timeLeft = document.getElementById("timeLeft");
     const count = document.getElementById("count");
 
-    if(run) run.textContent = s.running ? "yes" : "no";
-    if(holder) holder.textContent = s.holder;
-    if(timeLeft) timeLeft.textContent = s.timeLeft;
-    if(count) count.textContent = s.passes;
+    if(run)      run.textContent        = s.running     ? "yes" : "no";
+    if(holder)   holder.textContent     = s.holder      ?? "-";
+    if(timeLeft) timeLeft.textContent   = s.timeLeft    ?? "-";
+    if(count)    count.textContent      = s.passes      ?? "-";
 
     /* colorClush team scores */
     const teamScores = document.getElementById("teamScores");
@@ -248,11 +248,21 @@ async function refresh(){
         });
     }
 
+    /* masterRush status */
+    const mrConfirmed = document.getElementById("mrConfirmed");
+    const mrPending   = document.getElementById("mrPending");
+    const mrPhase     = document.getElementById("mrPhase");
+    if (mrConfirmed) mrConfirmed.textContent = s.confirmed ?? "-";
+    if (mrPending)   mrPending.textContent   = s.pending   ?? "-";
+    if (mrPhase)     mrPhase.textContent     = s.phase     ?? "-";
+
     if(lastRunning && !s.running){
         if(selectedMode === "colorClush" && s.teamPasses){
             showGameOverTeams(s.teamPasses);
         } else if(selectedMode === "colorConquest" && s.teamTimes){
             showGameOverConquest(s.teamTimes);
+        } else if (selectedMode === "masterRush") {
+            showGameOver(s.confirmed);
         } else {
             showGameOver(s.passes);
         }
