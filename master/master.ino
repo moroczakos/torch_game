@@ -128,6 +128,7 @@ void setupWeb() {
   server.serveStatic("/",               SPIFFS, "/index.html");
   server.serveStatic("/style.css",      SPIFFS, "/style.css");
   server.serveStatic("/app.js",         SPIFFS, "/app.js");
+  server.serveStatic("/lang.js",        SPIFFS, "/lang.js");
   server.serveStatic("/modes_data.js",  SPIFFS, "/modes_data.js");
   server.serveStatic("/dashboard.jpg",  SPIFFS, "/dashboard.jpg");
 

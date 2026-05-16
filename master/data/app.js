@@ -45,7 +45,7 @@ function updateTeamColorPreview(count){
     const preview = document.getElementById("teamColorPreview");
     if(!preview) return;
 
-    const label = selectedMode === "colorClush" ? "Team" : "Player";
+    const label = selectedMode === "colorClush" ? t("team") : t("player");
 
     preview.innerHTML = "";
     for(let i = 0; i < count; i++){
@@ -71,7 +71,7 @@ function showGameOver(passes){
     resultDiv.innerHTML = "";
     resultDiv.textContent = passes;
 
-    document.getElementById("gameOverModal").querySelector("p").textContent = "Total Passes";
+    document.getElementById("gameOverModal").querySelector("p").textContent = t("totalPasses");
     document.getElementById("gameOverModal").classList.add("show");
 }
 
@@ -87,17 +87,15 @@ function showGameOverTeams(teamPasses){
         resultDiv.innerHTML += `
         <div class="status-row">
             <span class="team-dot" style="background:${teamColors[i]}"></span>
-            <span>Team ${i + 1}: ${passes}</span>
+            <span>${t("team")} ${i + 1}: ${passes}</span>
         </div>`;
     });
 
     const msgEl = document.getElementById("gameOverModal").querySelector("p");
 
-    if(winners.length > 1){
-        msgEl.textContent = "Tie between Team " + winners.join(" and Team ") + "!";
-    } else {
-        msgEl.textContent = "Team " + winners[0] + " wins!";
-    }
+    msgEl.textContent = winners.length > 1
+    ? `${t("tieText")} ${winners.join(` ${t("andText")} `)}!`
+    : `${t("team")} ${winners[0]} ${t("winsText")}`;
 
     document.getElementById("gameOverModal").classList.add("show");
 }
@@ -137,16 +135,7 @@ function closeModal(){
 
 /* create torch UI */
 
-for(let i = 0; i < N; i++){
-    pDiv.innerHTML += `
-    <div class="torch-row">
-        <span class="dot" id="dot${i}"></span>
-        Torch ${i}
-    </div>`;
-
-    tDiv.innerHTML += `
-    <button class="btn" onclick="test(${i})">Torch ${i}</button>`;
-}
+rebuildTorchRows();
 
 /* sidebar menu */
 
@@ -194,15 +183,17 @@ async function refresh(){
         }
     }
 
+    const mV = document.getElementById("batteryVoltage");
     const run = document.getElementById("run");
     const holder = document.getElementById("holder");
     const timeLeft = document.getElementById("timeLeft");
     const count = document.getElementById("count");
 
-    if(run)      run.textContent        = s.running     ? "yes" : "no";
-    if(holder)   holder.textContent     = s.holder      ?? "-";
-    if(timeLeft) timeLeft.textContent   = s.timeLeft    ?? "-";
-    if(count)    count.textContent      = s.passes      ?? "-";
+    if(mV)       mV.textContent         = s.batteryVoltage  ?? "-";  
+    if(run)      run.textContent        = s.running         ? "yes" : "no";
+    if(holder)   holder.textContent     = s.holder          ?? "-";
+    if(timeLeft) timeLeft.textContent   = s.timeLeft        ?? "-";
+    if(count)    count.textContent      = s.passes          ?? "-";
 
     /* colorClush team scores */
     const teamScores = document.getElementById("teamScores");
@@ -286,19 +277,23 @@ async function loadModes() {
     list.innerHTML = "";
 
     modesData.forEach(mode => {
+        const label = translations[currentLang].modes[mode.id]?.label
+                   ?? translations["en"].modes[mode.id]?.label
+                   ?? mode.id;
         list.innerHTML += `
         <div class="mode-block">
-            <button class="btn mode-btn" onclick="selectMode('${mode.id}')">${mode.label}</button>
+            <button class="btn mode-btn" onclick="selectMode('${mode.id}')">${label}</button>
             <button class="btn btn--icon" onclick="showInfo('${mode.id}')">ℹ</button>
         </div>`;
     });
 }
 
 function showInfo(id) {
-    const mode = modesData.find(m => m.id === id);
-    document.getElementById("infoTitle").textContent = mode.label;
-    document.getElementById("infoText").textContent = mode.description;
-    document.getElementById("infoDetails").textContent = mode.details;
+    const modeText = translations[currentLang].modes[id]
+                  ?? translations["en"].modes[id];
+    document.getElementById("infoTitle").textContent   = modeText.label;
+    document.getElementById("infoText").textContent    = modeText.description;
+    document.getElementById("infoDetails").textContent = modeText.details;
     document.getElementById("infoModal").classList.add("show");
 }
 
@@ -319,6 +314,13 @@ function selectMode(id) {
     container.innerHTML = "";
     container.appendChild(tpl.content.cloneNode(true));
 
+    // translate the header
+    const header = container.querySelector(".header");
+    if (header) {
+        header.textContent = translations[currentLang].modes[id]?.label
+                          ?? translations["en"].modes[id]?.label;
+    }
+
     // re-bind brightness slider after it's injected into the DOM
     const bright = document.getElementById("bright");
     if(bright){
@@ -332,7 +334,24 @@ function selectMode(id) {
     updateTeamColorPreview(parseInt(document.getElementById("colors")?.value ?? 3));
 }
 
-loadModes();
+function rebuildTorchRows() {
+    pDiv.innerHTML = "";
+    tDiv.innerHTML = "";
+    for (let i = 0; i < N; i++) {
+        pDiv.innerHTML += 
+        `<div class="torch-row">
+            <span class="dot" id="dot${i}"></span>
+            <span>
+                ${t("torch")} ${i}, ${t("voltage")} 
+                <span id="batteryVoltage">-</span>mV
+            </span>
+        </div>`;
 
+        tDiv.innerHTML += `<button class="btn" onclick="test(${i})">${t("torch")} ${i}</button>`;
+    }
+}
+
+initLanguage();
+loadModes();
 setInterval(refresh, 1000);
 refresh();

@@ -345,6 +345,79 @@ body {
   vertical-align: middle;
 }
 
+/* ============================================================
+   LANGUAGE SELECTOR
+   ============================================================ */
+
+.lang-selector {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.lang-selector select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    padding: var(--space-3) var(--space-11) var(--space-3) var(--space-4);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-body);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-shadow: var(--shadow-card);
+}
+
+.lang-selector select:hover {
+    border-color: var(--color-primary);
+}
+
+.lang-selector select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Chevron using your primary blue */
+.lang-selector::after {
+    content: "";
+    position: absolute;
+    right: var(--space-4);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--color-primary);
+    pointer-events: none;
+}
+
+/* ============================================================
+   SETTINGS ROWS
+   ============================================================ */
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-7);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+}
+
+.setting-row label {
+    font-size: var(--font-size-body);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
 
 /* ============================================================
    UTILITIES
@@ -410,6 +483,10 @@ input[type="range"] {
   .dot             { width: var(--dot-size-lg); height: var(--dot-size-lg); }
 
   .status-row      { align-items: center; }
+
+  .lang-selector select { font-size: 27px; padding: var(--space-5) var(--space-11) var(--space-5) var(--space-5); }
+  .lang-selector::after { border-left-width:  7px; border-right-width: 7px; border-top-width: 9px; right: var(--space-5); }
+  .setting-row label    { font-size: 27px; }
 
   input[type="number"] {
     width: var(--input-number-width-lg);
