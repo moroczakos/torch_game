@@ -14,8 +14,9 @@
 
 // ================= CONFIG =================
 #define MY_ID 0
+#define ACTIVE_INTERVAL     1000
 
-const char* ssid = "ESP32-Game";
+const char* ssid = "Torch-Game";
 const char* pass = "12345678";
 
 // ================ GLOBALS =================
@@ -36,7 +37,10 @@ bool    running    = false;
 bool    prevDetect = false;
 bool    ledOn      = false;
 int     duration   = 30;
+float   batteryMv[MAX_PLAYERS] = {0};   // [MY_ID] = master, rest = slaves
 
+unsigned long lastVoltageCheck = 0;
+unsigned long lastActiveCheck  = 0;
 unsigned long startMillis              = 0;
 unsigned long lastSeen[MAX_PLAYERS]    = {0};
 bool          active[MAX_PLAYERS]      = {true, false, false, false, false};
@@ -82,6 +86,11 @@ void onRecv(const esp_now_recv_info* info,
 
   if (p.type == MSG_SENSOR && sender >= 0 && running)
     game->handleSensor(sender);
+
+  if (p.type == MSG_VOLTAGE && sender >= 0) {
+    batteryMv[sender] = (float)p.voltMv;
+    Serial.printf("[BATT] Slave %d: %.0f mV\n", sender, batteryMv[sender]);
+  }
 }
 
 // ============== WEB =======================
@@ -91,7 +100,16 @@ void sendStatus() {
     active[i] = (millis() - lastSeen[i] < 3000);
 
   String s = "{";
+
+  s += "\"batteryMv\":[";
+  for (int i = 0; i < MAX_PLAYERS; i++) {
+      s += String((int)batteryMv[i]);
+      if (i < MAX_PLAYERS - 1) s += ",";
+  }
+  s += "],";
+
   s += "\"running\":" + String(running ? "true" : "false") + ",";
+
   s += "\"online\":[true,";
   for (int i = 1; i < MAX_PLAYERS; i++) {
     s += active[i] ? "true" : "false";
@@ -118,10 +136,11 @@ void startGame() {
 
 void stopGame() {
   running = false;
-  game->stop();
 
   lastResult = "";
   game->appendStatus(lastResult);
+
+  game->stop();
 }
 
 void setupWeb() {
@@ -251,12 +270,32 @@ void setup() {
 // =============== LOOP =====================
 void loop() {
   server.handleClient();
+  unsigned long now = millis();
 
-  // timer expiry
-  if (running && millis() - startMillis > (unsigned long)duration * 1000)
-    stopGame();
+  // ── Voltage check (non-blocking, every 10s) ─────────────────
+  if (now - lastVoltageCheck >= VOLTAGE_INTERVAL) {
+    lastVoltageCheck = now;
+    batteryMv[MY_ID] = readBatteryVoltage();
+    Serial.printf("[BATT] Master: %.0f mV\n", batteryMv[MY_ID]);
+  }
 
-  // master IR
+  // ── Active player refresh (every 1000ms) ───────────────────-
+  if (now - lastActiveCheck >= ACTIVE_INTERVAL) {
+    lastActiveCheck = now;
+    for (int i = 1; i < MAX_PLAYERS; i++)
+      active[i] = (now - lastSeen[i] < 3000);
+  }
+
+  // ── Game logic ──────────────────────────────────
+  if (running) {
+      // timer expiry
+      if (millis() - startMillis > (unsigned long)duration * 1000)
+          stopGame();
+      else
+          game->tick();
+  }
+
+  // ── Master IR sensor ───────────────────────────────
   int v = digitalRead(IR_PIN);
   if (v == LOW && !prevDetect) {
     prevDetect = true;

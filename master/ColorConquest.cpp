@@ -74,6 +74,28 @@ void ColorConquest::appendStatus(String& s) {
     s += "]";
 }
 
+void ColorConquest::tick() {
+    unsigned long now = millis();
+
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        if (i == 0) continue;                    // master never goes offline
+        if (_buoyColor[i] < 0) continue;         // unclaimed, nothing to do
+        if (_ctx.active[i]) continue;            // still online, nothing to do
+
+        // buoy offline while claimed — flush its time and mark unclaimed
+        Serial.printf("[Conquest] Buoy %d offline, flushing team %d time\n",
+                      i, _buoyColor[i]);
+
+        if (_buoyClaimedAt[i] > 0) {
+            _teamTime[_buoyColor[i]] += now - _buoyClaimedAt[i];
+            _buoyClaimedAt[i] = 0;
+        }
+
+        _buoyColor[i] = -1;  // mark as unclaimed
+        // no sendClaimLed — buoy is offline, packet won't arrive
+    }
+}
+
 // ─── private ───────────────────────────────────────────
 
 void ColorConquest::sendClaimLed(int buoy, int team) {

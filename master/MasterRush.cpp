@@ -52,6 +52,37 @@ void MasterRush::appendStatus(String& s) {
     s += ",\"timeLeft\":"   + String(left);
 }
 
+void MasterRush::tick() {
+    if (_phase == PHASE_TARGET) {
+        if (_targetId == 0) return;
+        if (_ctx.active[_targetId]) return;
+
+        // target buoy dropped — pick a new one
+        Serial.printf("[MasterRush] Target %d offline, reassigning\n", _targetId);
+        _targetId = -1;
+        lightTarget();
+
+    } else { // PHASE_MASTER
+        if (_masterId == 0) return;
+        if (_ctx.active[_masterId]) return;
+
+        // master buoy dropped — promote a new master, go back to target phase
+        Serial.printf("[MasterRush] Master %d offline, promoting new master\n", _masterId);
+        _pendingPasses = 0;   // pending pass is lost — master is gone
+
+        // pick new master from remaining active buoys
+        for (int i = 1; i < MAX_PLAYERS; i++) {
+            if (_ctx.active[i] && i != _targetId) {
+                _masterId = i;
+                break;
+            }
+        }
+
+        _phase = PHASE_TARGET;
+        lightTarget();
+    }
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────
 
 void MasterRush::lightTarget() {

@@ -30,6 +30,20 @@ void ColorRush::appendStatus(String& s) {
     s += ",\"timeLeft\":" + String(left);
 }
 
+void ColorRush::tick() {
+    if (_holder == 0) return;          // master device never drops out
+    if (_ctx.active[_holder]) return;  // still online, nothing to do
+
+    // holder dropped — pass torch to another active player
+    Serial.printf("[ColorRush] Holder %d went offline, reassigning\n", _holder);
+    sendLed(_holder, false);           // attempt cleanup (may not arrive)
+    _holder = nextPlayer();
+    sendLed(_holder, true);
+    Serial.printf("[ColorRush] Torch reassigned to %d\n", _holder);
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────
+
 void ColorRush::sendLed(int id, bool on) {
     if (id == 0) { // MY_ID
         if (on) lightRandom();

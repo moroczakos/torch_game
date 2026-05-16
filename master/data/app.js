@@ -183,13 +183,23 @@ async function refresh(){
         }
     }
 
-    const mV = document.getElementById("batteryVoltage");
+    if (s.batteryMv) {
+        for (let i = 0; i < N; i++) {
+            const el = document.getElementById(`batteryVoltage${i}`);
+            if (el) {
+                const mv = s.batteryMv[i];
+                el.textContent = mv > 0
+                    ? (mv / 1000).toFixed(2) + " V"
+                    : "-";
+            }
+        }
+    }
+
     const run = document.getElementById("run");
     const holder = document.getElementById("holder");
     const timeLeft = document.getElementById("timeLeft");
     const count = document.getElementById("count");
 
-    if(mV)       mV.textContent         = s.batteryVoltage  ?? "-";  
     if(run)      run.textContent        = s.running         ? "yes" : "no";
     if(holder)   holder.textContent     = s.holder          ?? "-";
     if(timeLeft) timeLeft.textContent   = s.timeLeft        ?? "-";
@@ -343,7 +353,7 @@ function rebuildTorchRows() {
             <span class="dot" id="dot${i}"></span>
             <span>
                 ${t("torch")} ${i}, ${t("voltage")} 
-                <span id="batteryVoltage">-</span>mV
+                <span id="batteryVoltage${i}">-</span>
             </span>
         </div>`;
 

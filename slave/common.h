@@ -6,9 +6,13 @@
 
 // ================= CONFIG =================
 #define MAX_PLAYERS 5
-#define LED_PIN     2
 #define LED_COUNT   1
+#define BATT_PIN    1
+#define LED_PIN     2
 #define IR_PIN      3
+#define R1          20000.0f
+#define R2          10000.0f
+#define VOLTAGE_INTERVAL  10000
 
 // ================ PEERS ===================
 extern uint8_t peers[MAX_PLAYERS][6];
@@ -20,7 +24,8 @@ enum MsgType : uint8_t {
   MSG_START     = 2,
   MSG_STOP      = 3,
   MSG_HEARTBEAT = 4,
-  MSG_TEST      = 5
+  MSG_TEST      = 5,
+  MSG_VOLTAGE   = 6
 };
 
 typedef struct {
@@ -30,6 +35,7 @@ typedef struct {
   uint8_t r, g, b;
   uint8_t brightness;
   uint8_t team;
+  uint16_t voltMv;
 } Packet;
 
 typedef struct {
@@ -90,6 +96,7 @@ inline void printPacket(Packet p) {
     case MSG_STOP:      Serial.println("MSG_STOP");      break;
     case MSG_HEARTBEAT: Serial.println("MSG_HEARTBEAT"); break;
     case MSG_TEST:      Serial.println("MSG_TEST");      break;
+    case MSG_VOLTAGE:   Serial.println("MSG_VOLTAGE");   break;
     default:            Serial.println("UNKNOWN");       break;
   }
   Serial.printf("From: %u\n", p.from);
@@ -124,4 +131,19 @@ inline void initHardware() {
   pinMode(IR_PIN, INPUT);
   strip.begin();
   strip.show();
+}
+
+// ============= BATTERY CHECK ==============
+inline float readBatteryVoltage() {
+  uint32_t sum = 0;
+  
+  for (int i = 0; i < 16; i++) {
+    sum += analogReadMilliVolts(BATT_PIN); // Built-in calibration
+    delay(5);
+  }
+  float measuredMv = sum / 16.0f;
+  
+  // Scale back up through voltage divider
+  float actualMv = measuredMv * (R1 + R2) / R2;
+  return actualMv;
 }

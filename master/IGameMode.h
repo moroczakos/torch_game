@@ -7,5 +7,6 @@ public:
     virtual void stop()                          = 0;
     virtual void handleSensor(int fromId)        = 0;
     virtual void appendStatus(String& s)         = 0;
+    virtual void tick() {}
     virtual ~IGameMode() {}
 };

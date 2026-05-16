@@ -69,6 +69,33 @@ void ColorClush::appendStatus(String& s) {
     s += "]";
 }
 
+void ColorClush::tick() {
+    for (int t = 0; t < _numTeams; t++) {
+        int holder = _teamHolder[t];
+
+        // buoy 0 is the master device — never goes offline
+        if (holder == 0) continue;
+        if (_ctx.active[holder]) continue;
+
+        // holder dropped — reassign this team to a new active buoy
+        Serial.printf("[ColorClush] Team %d holder %d offline, reassigning\n", t, holder);
+
+        sendTeamLed(holder, t, false); // attempt cleanup
+
+        int next;
+        int attempts = 0;
+        do {
+            next = nextPlayer();
+            attempts++;
+            if (attempts > 100) { next = holder; break; } // fallback
+        } while (next == holder || isBuoyTaken(next, t));
+
+        _teamHolder[t] = next;
+        sendTeamLed(next, t, true);
+        Serial.printf("[ColorClush] Team %d reassigned to buoy %d\n", t, next);
+    }
+}
+
 // ─── private ───────────────────────────────────────────
 
 void ColorClush::sendTeamLed(int buoy, int team, bool on) {

@@ -23,7 +23,9 @@ uint8_t MY_ID = 255;
 
 // ============== STATE ==================
 bool prevDetect = false;
-unsigned long lastHeartbeat = 0;
+unsigned long lastHeartbeat     = 0;
+unsigned long lastVoltageCheck  = 0;
+float         batteryMv         = 0.0f;
 
 // ============ RECEIVE ===================
 void onRecv(const esp_now_recv_info*info,
@@ -75,6 +77,8 @@ void setup() {
     Serial.println("Error: This MAC is not in the peers list!");
   }
 
+  batteryMv = readBatteryVoltage();
+
   initEspNow(onRecv);
   addPeer(0); // Master only
 }
@@ -99,9 +103,25 @@ void loop() {
 
   if (v == HIGH) prevDetect = false;
 
+   unsigned long now = millis();
+
+  // ── Voltage check (non-blocking, every 10s) ─────────────────
+  if (now - lastVoltageCheck > VOLTAGE_INTERVAL) {
+    lastVoltageCheck = now;
+    batteryMv   = readBatteryVoltage();
+
+    Packet v{};
+    v.type   = MSG_VOLTAGE;
+    v.from   = MY_ID;
+    v.voltMv = (uint16_t)constrain(batteryMv, 0, 65535);
+
+    Serial.printf("[BATT]: %.0f mV\n", batteryMv);
+    esp_now_send(peers[0], (uint8_t*)&v, sizeof(v));
+  }
+
   // ---- HEARTBEAT ----
-  if (millis() - lastHeartbeat > 2000) {
-    lastHeartbeat = millis();
+  if (now - lastHeartbeat > 2000) {
+    lastHeartbeat = now;
 
     Packet hb{};
     hb.type = MSG_HEARTBEAT;

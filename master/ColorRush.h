@@ -10,6 +10,7 @@ public:
     void stop()                          override;
     void handleSensor(int fromId)        override;
     void appendStatus(String& s)         override;
+    void tick()                          override;
 
 private:
     GameContext&  _ctx;
