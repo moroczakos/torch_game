@@ -27,6 +27,11 @@ unsigned long lastHeartbeat     = 0;
 unsigned long lastVoltageCheck  = 0;
 float         batteryMv         = 0.0f;
 
+#ifdef USE_ULTRASONIC
+  unsigned long lastSonarRead   = 0;
+  #define SONAR_INTERVAL        50
+#endif
+
 // ============ RECEIVE ===================
 void onRecv(const esp_now_recv_info*info,
             const uint8_t*data, int len) {
@@ -58,6 +63,15 @@ void onRecv(const esp_now_recv_info*info,
   }
 }
 
+// =========== SENSOR FIRE ==================
+void fireSensor() {
+  Packet p{};
+  p.type = MSG_SENSOR;
+  p.from = MY_ID;
+  printPacket(p);
+  esp_now_send(peers[0], (uint8_t*)&p, sizeof(p));
+}
+
 // ============== SETUP ===================
 void setup() {
   initHardware();
@@ -85,25 +99,41 @@ void setup() {
 
 // =============== LOOP ===================
 void loop() {
+  unsigned long now = millis();
 
-  // ---- IR SENSOR ----
-  int v = digitalRead(IR_PIN);
+  // ---- SENSOR ----
+  #ifdef USE_ULTRASONIC
+    // ---- ULTRASONIC SENSOR ----
+    if (now - lastSonarRead >= SONAR_INTERVAL) {
+      lastSonarRead = now;
 
-  if (v == LOW && !prevDetect) {
-    prevDetect = true;
+      if (ledOn) {
+        float dist    = readDistanceCm();
+        bool detected = (dist <= TOUCH_DIST_CM);
 
-    Packet p{};
-    p.type = MSG_SENSOR;
-    p.from = MY_ID;
-
-    printPacket(p);
-
-    esp_now_send(peers[0], (uint8_t*)&p, sizeof(p));
-  }
-
-  if (v == HIGH) prevDetect = false;
-
-   unsigned long now = millis();
+        if (detected && !prevDetect) {
+          prevDetect = true;
+          Serial.printf("[SONAR] Triggered at %.1f cm\n", dist);
+          fireSensor();
+        }
+        if (!detected) prevDetect = false;
+      } else {
+        prevDetect = false;
+      }    
+    }
+  #else
+    // ---- IR SENSOR ----
+    if (ledOn) {  
+      int v = digitalRead(IR_PIN);
+      if (v == LOW && !prevDetect) {
+        prevDetect = true;
+        fireSensor();
+      }
+      if (v == HIGH) prevDetect = false;
+      } else {
+      prevDetect = false;
+    }
+  #endif
 
   // ── Voltage check (non-blocking, every 10s) ─────────────────
   if (now - lastVoltageCheck > VOLTAGE_INTERVAL) {

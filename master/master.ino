@@ -296,10 +296,14 @@ void loop() {
   }
 
   // ── Master IR sensor ───────────────────────────────
-  int v = digitalRead(IR_PIN);
-  if (v == LOW && !prevDetect) {
-    prevDetect = true;
-    if (running) game->handleSensor(MY_ID);
+  if (ledOn) { 
+    int v = digitalRead(IR_PIN);
+    if (v == LOW && !prevDetect) {
+      prevDetect = true;
+      if (running) game->handleSensor(MY_ID);
+    }
+    if (v == HIGH) prevDetect = false;
+  } else {
+    prevDetect = false;
   }
-  if (v == HIGH) prevDetect = false;
 }
