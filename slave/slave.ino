@@ -17,12 +17,13 @@ uint8_t peers[MAX_PLAYERS][6] = {
 
 bool    ledOn      = false;
 uint8_t brightness = 40;
-int     maxColors  = 3;
+int     maxColors  = 4;
 
-uint8_t MY_ID = 255;
+uint8_t MY_ID = 255; // will be auto-assigned in setup() based on MAC address
 
 // ============== STATE ==================
-bool prevDetect = false;
+bool prevDetect                 = false;
+volatile bool sensorArmed       = false;   // read sensor even when LED is off
 unsigned long lastHeartbeat     = 0;
 unsigned long lastVoltageCheck  = 0;
 float         batteryMv         = 0.0f;
@@ -30,6 +31,12 @@ float         batteryMv         = 0.0f;
 #ifdef USE_ULTRASONIC
   unsigned long lastSonarRead   = 0;
   #define SONAR_INTERVAL        50
+  #define SONAR_CONFIRM      2      
+  #define SONAR_MIN_CM       2.0f
+  #define SONAR_CLEAR_CM     (TOUCH_DIST_CM + 4)
+  int  sonarHits   = 0;
+  bool sonarClear  = false;
+  bool lastActive  = false;
 #endif
 
 // ============ RECEIVE ===================
@@ -47,9 +54,14 @@ void onRecv(const esp_now_recv_info*info,
     case MSG_LED:
       setLed(p.r, p.g, p.b, p.brightness);
       break;
-    case MSG_STOP:
-      clearLed();
-      break;
+  case MSG_LED_OFF:
+    clearLed();
+    sensorArmed = true;
+    break;
+  case MSG_STOP:
+    clearLed();
+    sensorArmed = false;
+    break;
     case MSG_TEST:
       for (int i = 0; i < 3; i++) {
         setLed(p.r, p.g, p.b, p.brightness);
@@ -107,23 +119,34 @@ void loop() {
     if (now - lastSonarRead >= SONAR_INTERVAL) {
       lastSonarRead = now;
 
-      if (ledOn) {
-        float dist    = readDistanceCm();
-        bool detected = (dist <= TOUCH_DIST_CM);
+      bool sonarActive = ledOn || sensorArmed;
 
-        if (detected && !prevDetect) {
-          prevDetect = true;
-          Serial.printf("[SONAR] Triggered at %.1f cm\n", dist);
-          fireSensor();
+      if (sonarActive && !lastActive) {
+        sonarHits = 0; sonarClear = false; prevDetect = false;
+      }
+      lastActive = sonarActive;
+
+      if (sonarActive) {
+        float d = readDistanceCm();
+
+        if (d > SONAR_CLEAR_CM) {
+          sonarClear = true;
+          sonarHits  = 0;
+          prevDetect = false;
+        } else if (sonarClear && d >= SONAR_MIN_CM && d <= TOUCH_DIST_CM) {
+          if (++sonarHits >= SONAR_CONFIRM && !prevDetect) {
+            prevDetect = true;
+            Serial.printf("[SONAR] Triggered at %.1f cm\n", d);
+            fireSensor();
+          }
         }
-        if (!detected) prevDetect = false;
       } else {
-        prevDetect = false;
-      }    
+        sonarHits = 0; sonarClear = false; prevDetect = false;
+      }
     }
   #else
     // ---- IR SENSOR ----
-    if (ledOn) {  
+    if (ledOn || sensorArmed) {  
       int v = digitalRead(IR_PIN);
       if (v == LOW && !prevDetect) {
         prevDetect = true;

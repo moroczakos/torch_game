@@ -39,6 +39,17 @@ bool    ledOn      = false;
 int     duration   = 30;
 float   batteryMv[MAX_PLAYERS] = {0};   // [MY_ID] = master, rest = slaves
 
+#ifdef USE_ULTRASONIC
+  unsigned long lastSonarRead   = 0;
+  #define SONAR_INTERVAL        50
+  #define SONAR_CONFIRM      2
+  #define SONAR_MIN_CM       2.0f
+  #define SONAR_CLEAR_CM     (TOUCH_DIST_CM + 4)
+  int  sonarHits   = 0;
+  bool sonarClear  = false;
+  bool lastActive  = false;
+#endif
+
 unsigned long lastVoltageCheck = 0;
 unsigned long lastActiveCheck  = 0;
 unsigned long startMillis              = 0;
@@ -68,6 +79,12 @@ void printAllArgs(String endpoint) {
       i, server.argName(i).c_str(), server.arg(i).c_str());
   }
   Serial.println();
+}
+
+static bool masterLit() {
+  for (int i = 0; i < LED_COUNT; i++)
+    if (strip.getPixelColor(i) != 0) return true;
+  return false;
 }
 
 // ========== ESPNOW RECEIVE ================
@@ -213,8 +230,7 @@ void setupWeb() {
       for (int i = 0; i < 3; i++) {
         lightRandom();
         delay(500);
-        strip.clear();
-        strip.show();
+        clearLed();
         delay(500);
       }
     }
@@ -295,15 +311,48 @@ void loop() {
           game->tick();
   }
 
-  // ── Master IR sensor ───────────────────────────────
-  if (ledOn) { 
-    int v = digitalRead(IR_PIN);
-    if (v == LOW && !prevDetect) {
-      prevDetect = true;
-      if (running) game->handleSensor(MY_ID);
+  // ---- MASTER SENSOR ----
+  ledOn = masterLit();
+  bool sonarActive = running && (ledOn || game->sensorAlwaysActive());
+
+  #ifdef USE_ULTRASONIC
+    if (now - lastSonarRead >= SONAR_INTERVAL) {
+      lastSonarRead = now;
+
+      if (sonarActive && !lastActive) {
+        sonarHits = 0; sonarClear = false; prevDetect = false;
+      }
+      lastActive = sonarActive;
+
+      if (sonarActive) {
+        float d = readDistanceCm();
+
+        if (d > SONAR_CLEAR_CM) {
+          sonarClear = true;
+          sonarHits  = 0;
+          prevDetect = false;
+        } else if (sonarClear && d >= SONAR_MIN_CM && d <= TOUCH_DIST_CM) {
+          if (++sonarHits >= SONAR_CONFIRM && !prevDetect) {
+            prevDetect = true;
+            Serial.printf("[SONAR] Triggered at %.1f cm\n", d);
+            if (running) game->handleSensor(MY_ID);
+          }
+        }
+      } else {
+        sonarHits = 0; sonarClear = false; prevDetect = false;
+      }
     }
-    if (v == HIGH) prevDetect = false;
-  } else {
-    prevDetect = false;
-  }
+  #else
+    // ---- IR SENSOR ----
+    if (sonarActive) {
+      int v = digitalRead(IR_PIN);
+      if (v == LOW && !prevDetect) {
+        prevDetect = true;
+        if (running) game->handleSensor(MY_ID);
+      }
+      if (v == HIGH) prevDetect = false;
+    } else {
+      prevDetect = false;
+    }
+  #endif
 }

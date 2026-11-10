@@ -11,6 +11,8 @@ public:
     void handleSensor(int fromId)        override;
     void appendStatus(String& s)         override;
     void tick()                          override;
+    bool sensorAlwaysActive()            const override { return true; }
+
 
 private:
     GameContext&  _ctx;
@@ -20,5 +22,5 @@ private:
     int           _duration    = 30;
     unsigned long _startMillis = 0;
 
-    void sendClaimLed(int buoy, int team);
+    void sendClaimLed(int buoy, int team, bool disarm = false);
 };

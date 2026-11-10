@@ -5,14 +5,23 @@
 #include <Adafruit_NeoPixel.h>
 
 // ================= CONFIG =================
+#define USE_ULTRASONIC
 #define MAX_PLAYERS 5
-#define LED_COUNT   1
+#define LED_COUNT   8
 #define BATT_PIN    1
 #define LED_PIN     2
-#define IR_PIN      3
 #define R1          20000.0f
 #define R2          10000.0f
 #define VOLTAGE_INTERVAL  10000
+
+#ifdef USE_ULTRASONIC
+  #define TRIG_PIN   5
+  #define ECHO_PIN   6
+  #define TOUCH_DIST_CM  10      // trigger threshold in cm
+  #define SONAR_TIMEOUT  6000    // microseconds — covers ~1m max range
+#else
+  #define IR_PIN     3
+#endif
 
 // ================ PEERS ===================
 extern uint8_t peers[MAX_PLAYERS][6];
@@ -25,7 +34,8 @@ enum MsgType : uint8_t {
   MSG_STOP      = 3,
   MSG_HEARTBEAT = 4,
   MSG_TEST      = 5,
-  MSG_VOLTAGE   = 6
+  MSG_VOLTAGE   = 6,
+  MSG_LED_OFF   = 7    // LED off, sensor stays armed
 };
 
 typedef struct {
@@ -68,13 +78,14 @@ inline RGBColor palette(int i) {
 inline void lightRandom() {
   RGBColor rgb = palette(random(maxColors));
   strip.setBrightness(brightness);
-  strip.setPixelColor(0, strip.Color(rgb.r, rgb.g, rgb.b));
+  strip.fill(strip.Color(rgb.r, rgb.g, rgb.b));
   strip.show();
+  ledOn = true;
 }
 
 inline void setLed(uint8_t r, uint8_t g, uint8_t b, uint8_t br) {
   strip.setBrightness(br);
-  strip.setPixelColor(0, strip.Color(r, g, b));
+  strip.fill(strip.Color(r, g, b));
   strip.show();
   ledOn = true;
 }
@@ -97,6 +108,7 @@ inline void printPacket(Packet p) {
     case MSG_HEARTBEAT: Serial.println("MSG_HEARTBEAT"); break;
     case MSG_TEST:      Serial.println("MSG_TEST");      break;
     case MSG_VOLTAGE:   Serial.println("MSG_VOLTAGE");   break;
+    case MSG_LED_OFF:   Serial.println("MSG_LED_OFF");   break;
     default:            Serial.println("UNKNOWN");       break;
   }
   Serial.printf("From: %u\n", p.from);
@@ -128,7 +140,15 @@ inline void addPeer(int index, wifi_interface_t iface = WIFI_IF_STA, uint8_t cha
 // ============= SHARED HW INIT =============
 inline void initHardware() {
   Serial.begin(115200);
-  pinMode(IR_PIN, INPUT);
+
+  #ifdef USE_ULTRASONIC
+    pinMode(TRIG_PIN, OUTPUT);
+    pinMode(ECHO_PIN, INPUT);
+    digitalWrite(TRIG_PIN, LOW);
+  #else
+    pinMode(IR_PIN, INPUT);
+  #endif
+
   strip.begin();
   strip.show();
 }
@@ -147,3 +167,21 @@ inline float readBatteryVoltage() {
   float actualMv = measuredMv * (R1 + R2) / R2;
   return actualMv;
 }
+
+//  ============= ULTRASONIC HELPER ==============
+#ifdef USE_ULTRASONIC
+inline float readDistanceCm() {
+    // send 10µs trigger pulse
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+
+    // measure echo pulse width, timeout if no return
+    unsigned long duration = pulseIn(ECHO_PIN, HIGH, SONAR_TIMEOUT);
+    if (duration == 0) return 999.0f; // no echo = out of range
+
+    return (duration * 0.0343f) / 2.0f; // convert to cm
+}
+#endif

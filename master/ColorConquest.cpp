@@ -23,7 +23,7 @@ void ColorConquest::stop() {
             _teamTime[_buoyColor[i]] += now - _buoyClaimedAt[i];
             _buoyClaimedAt[i] = 0;
         }
-        sendClaimLed(i, -1); // turn off
+        sendClaimLed(i, -1, true);
     }
 }
 
@@ -98,7 +98,7 @@ void ColorConquest::tick() {
 
 // ─── private ───────────────────────────────────────────
 
-void ColorConquest::sendClaimLed(int buoy, int team) {
+void ColorConquest::sendClaimLed(int buoy, int team, bool disarm) {
     // team -1 means turn off
     bool on = (team >= 0);
 
@@ -126,7 +126,7 @@ void ColorConquest::sendClaimLed(int buoy, int team) {
         p.b    = rgb.b;
         p.team = team;
     } else {
-        p.type = MSG_STOP;
+        p.type = disarm ? MSG_STOP : MSG_LED_OFF;
         p.r = p.g = p.b = 0;
     }
 

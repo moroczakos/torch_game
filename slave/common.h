@@ -34,7 +34,8 @@ enum MsgType : uint8_t {
   MSG_STOP      = 3,
   MSG_HEARTBEAT = 4,
   MSG_TEST      = 5,
-  MSG_VOLTAGE   = 6
+  MSG_VOLTAGE   = 6,
+  MSG_LED_OFF   = 7    // LED off, sensor stays armed
 };
 
 typedef struct {
@@ -79,6 +80,7 @@ inline void lightRandom() {
   strip.setBrightness(brightness);
   strip.fill(strip.Color(rgb.r, rgb.g, rgb.b));
   strip.show();
+  ledOn = true;
 }
 
 inline void setLed(uint8_t r, uint8_t g, uint8_t b, uint8_t br) {
@@ -106,6 +108,7 @@ inline void printPacket(Packet p) {
     case MSG_HEARTBEAT: Serial.println("MSG_HEARTBEAT"); break;
     case MSG_TEST:      Serial.println("MSG_TEST");      break;
     case MSG_VOLTAGE:   Serial.println("MSG_VOLTAGE");   break;
+    case MSG_LED_OFF:   Serial.println("MSG_LED_OFF");   break;
     default:            Serial.println("UNKNOWN");       break;
   }
   Serial.printf("From: %u\n", p.from);
