@@ -1,5 +1,11 @@
 const translations = {
     en: {
+        // General
+        pageTitle:        "Torch Control Panel",
+        dashboardImgAlt:  "Five glowing colour-coded buoys on a sports field",
+        gameSettings:     "Game Settings",
+        gameStatus:       "Status",
+
         // Sidebar
         sidebarTitle:   "🔥 Torch Panel",
         menuDashboard:  "Dashboard",
@@ -44,11 +50,13 @@ const translations = {
         labelPhase:     "Phase",
         labelConfirmed: "Confirmed",
         labelPending:   "Pending",
+        phaseMaster:    "Master buoy",
+        phaseTarget:    "Target buoy",
         labelTeamScores:"Team Scores",
         labelBuoys:     "Buoys",
         labelTeamTimes: "Team Times",
-        labelYes:       "yes",
-        labelNo:        "no",
+        labelYes:       "Yes",
+        labelNo:        "No",
 
         // Torch rows
         torch:          "Torch",
@@ -62,6 +70,11 @@ const translations = {
         tieText:        "Tie between Team",
         winsText:       "wins!",
         andText:        "and Team",
+        colorRed:       "Red",
+        colorBlue:      "Blue",
+        teamRedWins:    "Red team wins!",
+        teamBlueWins:   "Blue team wins!",
+        drawText:       "It's a draw!",
 
         // Info modal
         modeInfo:       "Mode Info",
@@ -96,6 +109,11 @@ const translations = {
     },
 
     hu: {
+        pageTitle:        "Jelzőfény Vezérlőpult",
+        dashboardImgAlt:  "Öt világító, színkódolt bója egy sportpályán",
+        gameSettings:     "Játékbeállítások",
+        gameStatus:       "Állapot",
+
         sidebarTitle:   "🔥 Jelzőfény Panel",
         menuDashboard:  "Főoldal",
         menuModes:      "Játékmódok",
@@ -132,11 +150,13 @@ const translations = {
         labelPhase:     "Fázis",
         labelConfirmed: "Megerősített",
         labelPending:   "Függőben",
+        phaseMaster:    "Fő bója",
+        phaseTarget:    "Cél bója",
         labelTeamScores:"Csapatpontok",
         labelBuoys:     "Bóják",
         labelTeamTimes: "Csapatidők",
-        labelYes:       "igen",
-        labelNo:        "nem",
+        labelYes:       "Igen",
+        labelNo:        "Nem",
 
         torch:          "Bója",
         team:           "Csapat",
@@ -148,6 +168,11 @@ const translations = {
         tieText:        "Döntetlen a következők között:",
         winsText:       "nyert!",
         andText:        "és",
+        colorRed:       "Piros",
+        colorBlue:      "Kék",
+        teamRedWins:    "A piros csapat nyert!",
+        teamBlueWins:   "A kék csapat nyert!",
+        drawText:       "Döntetlen!",
 
         modeInfo:       "Mód info",
 
@@ -205,6 +230,10 @@ function setLanguage(lang) {
     applyTranslations();
     loadModes();            // re-render mode list (labels don't use data-i18n)
     rebuildTorchRows();     // re-render torch/test rows with new language
+    
+    const colorsEl = document.getElementById("colors");
+    if (colorsEl) updateTeamColorPreview(parseInt(colorsEl.value));
+    refresh();
 
     // re-translate active mode header if one is selected
     if (selectedMode) {
@@ -216,9 +245,12 @@ function setLanguage(lang) {
     }
 }
 
-function applyTranslations() {
-    document.querySelectorAll("[data-i18n]").forEach(el => {
-        const key = el.getAttribute("data-i18n");
-        el.textContent = t(key);
+function applyTranslations(root = document) {
+    root.querySelectorAll("[data-i18n]").forEach(el => {
+        el.textContent = t(el.getAttribute("data-i18n"));
     });
+    root.querySelectorAll("[data-i18n-alt]").forEach(el => {
+        el.alt = t(el.getAttribute("data-i18n-alt"));
+    });
+    document.documentElement.lang = currentLang;
 }

@@ -101,7 +101,7 @@ function showGameOverTeams(teamPasses){
 }
 
 function showGameOverConquest(teamTimes){
-    const labels = ["Red", "Blue"];
+    const labels = [t("colorRed"), t("colorBlue")];
     const colors = [teamColors[0], teamColors[2]];
 
     const resultDiv = document.getElementById("passResult");
@@ -115,16 +115,14 @@ function showGameOverConquest(teamTimes){
     });
 
     const max = Math.max(...teamTimes);
-    const winners = teamTimes
-        .map((t, i) => t === max ? labels[i] : null)
-        .filter(l => l !== null);
+    const winnerIdx = teamTimes
+        .map((ms, i) => ms === max ? i : null)
+        .filter(i => i !== null);
 
     const msgEl = document.getElementById("gameOverModal").querySelector("p");
-    if(winners.length === teamTimes.length){
-        msgEl.textContent = "It's a draw!";
-    } else {
-        msgEl.textContent = winners[0] + " team wins!";
-    }
+    msgEl.textContent = winnerIdx.length === teamTimes.length
+        ? t("drawText")
+        : t(winnerIdx[0] === 0 ? "teamRedWins" : "teamBlueWins");
 
     document.getElementById("gameOverModal").classList.add("show");
 }
@@ -200,7 +198,7 @@ async function refresh(){
     const timeLeft = document.getElementById("timeLeft");
     const count = document.getElementById("count");
 
-    if(run)      run.textContent        = s.running         ? "yes" : "no";
+    if(run)      run.textContent        = s.running         ? t("labelYes") : t("labelNo");
     if(holder)   holder.textContent     = s.holder          ?? "-";
     if(timeLeft) timeLeft.textContent   = s.timeLeft        ?? "-";
     if(count)    count.textContent      = s.passes          ?? "-";
@@ -212,7 +210,7 @@ async function refresh(){
         s.teamPasses.forEach((passes, i) => {
             teamScores.innerHTML += `
             <div class="status-row">
-                <span>Team ${i + 1}</span>
+                <span>${t("team")} ${i + 1}</span>
                 <span>${passes}</span>
             </div>`;
         });
@@ -225,7 +223,7 @@ async function refresh(){
         s.buoyColors.forEach((color, i) => {
             buoyStatus.innerHTML += `
             <div class="status-row">
-                <span>Buoy ${i}</span>
+                <span>${t("torch")} ${i}</span>
                 <span class="team-dot" style="background:${conquestColor(color)}"></span>
             </div>`;
         });
@@ -235,7 +233,7 @@ async function refresh(){
     const teamTimes = document.getElementById("teamTimes");
     if(teamTimes && s.teamTimes){
         teamTimes.innerHTML = "";
-        const labels = ["Red", "Blue"];
+        const labels = [t("colorRed"), t("colorBlue")];
         const colors = ["#ff0000", "#0000ff"];
         s.teamTimes.forEach((ms, i) => {
             teamTimes.innerHTML += `
@@ -250,12 +248,20 @@ async function refresh(){
     }
 
     /* masterRush status */
+    const phaseKeys = { master: "phaseMaster", target: "phaseTarget" };
+
+    function phaseText(p) {
+        if (p === undefined || p === null || p === "") return "-";
+        const key = phaseKeys[String(p).toLowerCase()];
+        return key ? t(key) : p;
+    }
+
     const mrConfirmed = document.getElementById("mrConfirmed");
     const mrPending   = document.getElementById("mrPending");
     const mrPhase     = document.getElementById("mrPhase");
     if (mrConfirmed) mrConfirmed.textContent = s.confirmed ?? "-";
     if (mrPending)   mrPending.textContent   = s.pending   ?? "-";
-    if (mrPhase)     mrPhase.textContent     = s.phase     ?? "-";
+    if (mrPhase)     mrPhase.textContent     = phaseText(s.phase);
 
     if(lastRunning && !s.running){
         if(selectedMode === "colorClush" && s.teamPasses){
@@ -323,6 +329,7 @@ function selectMode(id) {
 
     container.innerHTML = "";
     container.appendChild(tpl.content.cloneNode(true));
+    applyTranslations(container);
 
     // translate the header
     const header = container.querySelector(".header");

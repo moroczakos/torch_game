@@ -112,10 +112,7 @@ void MasterRush::lightTarget() {
 void MasterRush::lightMaster() {
     Serial.printf("[MasterRush] Light master %d WHITE\n", _masterId);
     if (_masterId == 0) {
-        // local white
-        uint8_t bri = _ctx.brightness;
-        _ctx.strip->fill(_ctx.strip->Color(bri, bri, bri));
-        _ctx.strip->show();
+        setLed(255, 255, 255, _ctx.brightness);
     } else {
         sendLed(_masterId, 255, 255, 255); // white
     }
